@@ -189,6 +189,8 @@ namespace Substrate
         public const int SEA_LANTERN = 169;
         public const int STANDING_BANNER = 176;
         public const int WALL_BANNER = 177;
+        public const int PURPUR = 201;
+        public const int PURPUR_STAIRS = 203;
     }
 
     /// <summary>
