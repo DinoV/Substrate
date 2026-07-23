@@ -61,7 +61,10 @@
   <ItemGroup>
     <Compile Include="Source\AlphaChunk.cs" />
     <Compile Include="Source\AlphaWorld.cs" />
+    <Compile Include="Source\AquaticBiomeCollection.cs" />
     <Compile Include="Source\AnvilBiomeCollection.cs" />
+    <Compile Include="Source\AquaticSection.cs" />
+    <Compile Include="Source\AquaticChunk.cs" />
     <Compile Include="Source\AnvilChunk.cs" />
     <Compile Include="Source\AnvilRegion.cs" />
     <Compile Include="Source\AnvilRegionManager.cs" />

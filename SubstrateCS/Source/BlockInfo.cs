@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Substrate.Nbt;
 using System.Collections;
+using System.Diagnostics;
 
 namespace Substrate
 {
@@ -180,6 +181,8 @@ namespace Substrate
         public const int DROPPER = 158;
         public const int STAINED_CLAY = 159;
         public const int STAINED_GLASS_PANE = 160;
+        public const int ACACIA_WOOD_STAIRS = 163;
+        public const int DARK_OAK_WOOD_STAIRS = 164;
         public const int HAY_BLOCK = 170;
         public const int CARPET = 171;
         public const int HARDENED_CLAY = 172;
@@ -252,6 +255,8 @@ namespace Substrate
         private static readonly int[] _opacityTable;
         private static readonly int[] _luminanceTable;
 
+        private static readonly Dictionary<string, BlockInfo> _blockNameTable;
+
         private class CacheTableArray<T> : ICacheTable<T>
         {
             private T[] _cache;
@@ -317,6 +322,7 @@ namespace Substrate
 
         private int _id = 0;
         private string _name = "";
+        private string _strId;
         private int _tick = 0;
         private int _opacity = MAX_OPACITY;
         private int _luminance = MIN_LUMINANCE;
@@ -338,6 +344,12 @@ namespace Substrate
         public static ICacheTable<BlockInfo> BlockTable
         {
             get { return _blockTableCache; }
+        }
+
+        public static Dictionary<string, BlockInfo> BlockNameTable {
+            get {
+                return _blockNameTable;
+            }
         }
 
         /// <summary>
@@ -362,6 +374,12 @@ namespace Substrate
         public int ID
         {
             get { return _id; }
+        }
+
+        public string StrID {
+            get {
+                return _strId;
+            }
         }
 
         /// <summary>
@@ -449,12 +467,17 @@ namespace Substrate
         /// <param name="id">The id of the block.</param>
         /// <param name="name">The name of the block.</param>
         /// <remarks>All user-constructed <see cref="BlockInfo"/> objects are registered automatically.</remarks>
-        public BlockInfo (int id, string name)
+        public BlockInfo (int id, string name, string strId = null)
         {
             _id = id;
             _name = name;
             _blockTable[_id] = this;
             _registered = true;
+            _strId = strId;
+            if (strId != null) {
+                Debug.Assert(!_blockNameTable.ContainsKey(strId));
+                _blockNameTable[strId] = this;
+            }
         }
 
         /// <summary>
@@ -754,7 +777,7 @@ namespace Substrate
             _opacityTableCache = new CacheTableArray<int>(_opacityTable);
             _luminanceTableCache = new CacheTableArray<int>(_luminanceTable);
 
-            Air = new BlockInfo(0, "Air").SetOpacity(0).SetState(BlockState.NONSOLID);
+            Air = new BlockInfo(0, "Air", "minecraft:air").SetOpacity(0).SetState(BlockState.NONSOLID);
             Stone = new BlockInfo(1, "Stone");
             Grass = new BlockInfo(2, "Grass").SetTick(10);
             Dirt = new BlockInfo(3, "Dirt");

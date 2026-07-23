@@ -7,15 +7,23 @@ using System.IO;
 
 namespace Substrate
 {
-    public class AnvilChunk : IChunk, INbtObject<AnvilChunk>, ICopyable<AnvilChunk>
+    public class AquaticChunk : IChunk, INbtObject<AquaticChunk>, ICopyable<AquaticChunk>
     {
         public static SchemaNodeCompound LevelSchema = new SchemaNodeCompound()
         {
             new SchemaNodeCompound("Level")
             {
-                new SchemaNodeList("Sections", TagType.TAG_COMPOUND, AnvilSection.SectionSchema),
-                new SchemaNodeArray("Biomes", 256, SchemaOptions.OPTIONAL),
-                new SchemaNodeIntArray("HeightMap", 256),
+                new SchemaNodeList("Sections", TagType.TAG_COMPOUND, AquaticSection.SectionSchema),
+                new SchemaNodeList("Lights", TagType.TAG_LIST, SchemaOptions.OPTIONAL),
+                new SchemaNodeList("PostProcessing", TagType.TAG_LIST),
+                new SchemaNodeIntArray("Biomes", 256, SchemaOptions.OPTIONAL),
+                new SchemaNodeCompound("Heightmaps") {
+                    new SchemaNodeLongArray("OCEAN_FLOOR", 36),
+                    new SchemaNodeLongArray("MOTION_BLOCKING_NO_LEAVES", 36),
+                    new SchemaNodeLongArray("MOTION_BLOCKING", 36),
+                    new SchemaNodeLongArray("WORLD_SURFACE", 36),
+                    new SchemaNodeLongArray("LIGHT_BLOCKING", 36),
+                },
                 new SchemaNodeList("Entities", TagType.TAG_COMPOUND, SchemaOptions.CREATE_ON_MISSING),
                 new SchemaNodeList("TileEntities", TagType.TAG_COMPOUND, TileEntity.Schema, SchemaOptions.CREATE_ON_MISSING),
                 new SchemaNodeList("TileTicks", TagType.TAG_COMPOUND, TileTick.Schema, SchemaOptions.OPTIONAL),
@@ -35,7 +43,7 @@ namespace Substrate
         private int _cx;
         private int _cz;
 
-        private AnvilSection[] _sections;
+        private AquaticSection[] _sections;
 
         private IDataArray3 _blocks;
         private IDataArray3 _data;
@@ -51,12 +59,12 @@ namespace Substrate
 
         private AlphaBlockCollection _blockManager;
         private EntityCollection _entityManager;
-        private AnvilBiomeCollection _biomeManager;
+        private AquaticBiomeCollection _biomeManager;
 
 
-        private AnvilChunk ()
+        private AquaticChunk()
         {
-            _sections = new AnvilSection[16];
+            _sections = new AquaticSection[16];
         }
 
         public int X
@@ -69,7 +77,7 @@ namespace Substrate
             get { return _cz; }
         }
         
-        public AnvilSection[] Sections
+        public AquaticSection[] Sections
         {
             get { return _sections; }
         }
@@ -79,7 +87,7 @@ namespace Substrate
             get { return _blockManager; }
         }
 
-        public AnvilBiomeCollection Biomes
+        public AquaticBiomeCollection Biomes
         {
             get { return _biomeManager; }
         }
@@ -100,9 +108,9 @@ namespace Substrate
             set { _tree.Root["Level"].ToTagCompound()["TerrainPopulated"].ToTagByte().Data = (byte)(value ? 1 : 0); }
         }
 
-        public static AnvilChunk Create (int x, int z)
+        public static AquaticChunk Create (int x, int z)
         {
-            AnvilChunk c = new AnvilChunk();
+            AquaticChunk c = new AquaticChunk();
 
             c._cx = x;
             c._cz = z;
@@ -111,16 +119,16 @@ namespace Substrate
             return c;
         }
 
-        public static AnvilChunk Create (NbtTree tree)
+        public static AquaticChunk Create (NbtTree tree)
         {
-            AnvilChunk c = new AnvilChunk();
+            AquaticChunk c = new AquaticChunk();
 
             return c.LoadTree(tree.Root);
         }
 
-        public static AnvilChunk CreateVerified (NbtTree tree)
+        public static AquaticChunk CreateVerified (NbtTree tree)
         {
-            AnvilChunk c = new AnvilChunk();
+            AquaticChunk c = new AquaticChunk();
 
             return c.LoadTreeSafe(tree.Root);
         }
@@ -212,9 +220,9 @@ namespace Substrate
             return true;
         }
 
-        #region INbtObject<AnvilChunk> Members
+        #region INbtObject<AquaticChunk> Members
 
-        public AnvilChunk LoadTree (TagNode tree)
+        public AquaticChunk LoadTree (TagNode tree)
         {
             TagNodeCompound ctree = tree as TagNodeCompound;
             if (ctree == null) {
@@ -227,10 +235,10 @@ namespace Substrate
 
             TagNodeList sections = level["Sections"] as TagNodeList;
             foreach (TagNodeCompound section in sections) {
-                AnvilSection anvilSection = new AnvilSection(section);
-                if (anvilSection.Y < 0 || anvilSection.Y >= _sections.Length)
+                AquaticSection aquaticSection = new AquaticSection(section);
+                if (aquaticSection.Y < 0 || aquaticSection.Y >= _sections.Length)
                     continue;
-                _sections[anvilSection.Y] = anvilSection;
+                _sections[aquaticSection.Y] = aquaticSection;
             }
 
             FusedDataArray3[] blocksBA = new FusedDataArray3[_sections.Length];
@@ -240,7 +248,7 @@ namespace Substrate
 
             for (int i = 0; i < _sections.Length; i++) {
                 if (_sections[i] == null)
-                    _sections[i] = new AnvilSection(i);
+                    _sections[i] = new AquaticSection(i);
 
                 blocksBA[i] = new FusedDataArray3(_sections[i].AddBlocks, _sections[i].Blocks);
                 dataBA[i] = _sections[i].Data;
@@ -294,13 +302,24 @@ namespace Substrate
 
             _blockManager = new AlphaBlockCollection(_blocks, _data, _blockLight, _skyLight, _heightMap, _tileEntities, _tileTicks);
             _entityManager = new EntityCollection(_entities);
-            _biomeManager = new AnvilBiomeCollection(_biomes);
+            _biomeManager = new AquaticBiomeCollection(_biomes);
 
             return this;
         }
 
-        public AnvilChunk LoadTreeSafe (TagNode tree)
-        {
+        public AquaticChunk LoadTreeSafe(TagNode tree) {
+            var level = tree.ToTagCompound()["Level"].ToTagCompound();
+
+            var sections = level["Sections"].ToTagList();
+            var section = sections[0].ToTagCompound();
+            var blockStates = section["BlockStates"].ToTagLongArray();
+            var blockLight = section["BlockLight"].ToTagByteArray();
+            var skyLight = section["SkyLight"].ToTagByteArray();
+            var palette = section["Palette"].ToTagList();
+            foreach (var item in palette) {
+                var block = item.ToTagCompound();
+                var name = block["Name"].ToTagString();
+            }
             if (!ValidateTree(tree)) {
                 return null;
             }
@@ -308,7 +327,7 @@ namespace Substrate
             return LoadTree(tree);
         }
 
-        private bool ShouldIncludeSection (AnvilSection section)
+        private bool ShouldIncludeSection (AquaticSection section)
         {
             int y = (section.Y + 1) * section.Blocks.YDim;
             for (int i = 0; i < _heightMap.Length; i++)
@@ -346,11 +365,11 @@ namespace Substrate
 
         #endregion
 
-        #region ICopyable<AnvilChunk> Members
+        #region ICopyable<AquaticChunk> Members
 
-        public AnvilChunk Copy ()
+        public AquaticChunk Copy ()
         {
-            return AnvilChunk.Create(_tree.Copy());
+            return AquaticChunk.Create(_tree.Copy());
         }
 
         #endregion
@@ -368,11 +387,11 @@ namespace Substrate
         {
             int elements2 = XDIM * ZDIM;
 
-            _sections = new AnvilSection[16];
+            _sections = new AquaticSection[16];
             TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND);
 
             for (int i = 0; i < _sections.Length; i++) {
-                _sections[i] = new AnvilSection(i);
+                _sections[i] = new AquaticSection(i);
                 sections.Add(_sections[i].BuildTree());
             }
 

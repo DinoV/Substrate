@@ -226,7 +226,7 @@ namespace Substrate.Nbt
 
             bool pass = true;
 
-            Dictionary<string, TagNode> _scratch = new Dictionary<string, TagNode>();
+            Dictionary<string, TagNode> _scratch = null;
 
             foreach (SchemaNode node in this) {
                 TagNode value;
@@ -234,6 +234,9 @@ namespace Substrate.Nbt
 
                 if (value == null) {
                     if ((node.Options & SchemaOptions.CREATE_ON_MISSING) == SchemaOptions.CREATE_ON_MISSING) {
+                        if (_scratch == null) {
+                            _scratch = new Dictionary<string, TagNode>();
+                        }
                         _scratch[node.Name] = node.BuildDefaultTree();
                         continue;
                     } else if ((node.Options & SchemaOptions.OPTIONAL) == SchemaOptions.OPTIONAL) {
@@ -244,11 +247,11 @@ namespace Substrate.Nbt
                 pass = node.Verify(verifier, value) && pass;
             }
 
-            foreach (KeyValuePair<string, TagNode> item in _scratch) {
-                ctag[item.Key] = item.Value;
+            if (_scratch != null) {
+                foreach (KeyValuePair<string, TagNode> item in _scratch) {
+                    ctag[item.Key] = item.Value;
+                }
             }
-
-            _scratch.Clear();
 
             return pass;
         }

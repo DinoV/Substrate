@@ -284,6 +284,25 @@ namespace Substrate
             cache.Blocks.AutoTileTick = autoTileTick;
         }
 
+        /// <inheritdoc/>
+        public string GetStringID(int x, int y, int z) {
+            // TODO: Should be BlockInfo
+            cache = GetChunk(x, y, z);
+            if (cache == null) {
+                return null;
+            }
+
+            var res = cache.Blocks.GetID(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return ItemInfo.ItemTable[res].StringId;
+        }
+
+        /// <inheritdoc/>
+        public void SetStringID(int x, int y, int z, string id) {
+            // TODO: Should be BlockInfo
+            var intId = ItemInfo.StrTable[id].ID;
+            SetID(x, y, z, intId);
+        }
+
         #endregion
 
 

@@ -6,16 +6,25 @@ using Substrate.Core;
 
 namespace Substrate
 {
-    public class AnvilSection : INbtObject<AnvilSection>, ICopyable<AnvilSection>
+    public class AquaticSection : INbtObject<AquaticSection>, ICopyable<AquaticSection>
     {
-        public static SchemaNodeCompound SectionSchema = new SchemaNodeCompound()
-        {
-            new SchemaNodeArray("Blocks", 4096),
-            new SchemaNodeArray("Data", 2048),
+        public static SchemaNodeCompound SectionSchema = new SchemaNodeCompound() {
+            new SchemaNodeCompound("block_states") {
+                new SchemaNodeList("palette", TagType.TAG_COMPOUND, new SchemaNodeCompound() {
+                    new SchemaNodeString("Name", null),
+                    new SchemaNodeCompound("Properties", SchemaOptions.OPTIONAL)
+                }),
+                new SchemaNodeLongArray("data", 0, SchemaOptions.OPTIONAL),
+            },
+            new SchemaNodeCompound("biomes") {
+                new SchemaNodeList("palette", TagType.TAG_COMPOUND, new SchemaNodeCompound() {
+                    new SchemaNodeString("Name", null),
+                }),
+                new SchemaNodeLongArray("data", 256, SchemaOptions.OPTIONAL),
+            },
             new SchemaNodeArray("SkyLight", 2048),
             new SchemaNodeArray("BlockLight", 2048),
             new SchemaNodeScaler("Y", TagType.TAG_BYTE),
-            new SchemaNodeArray("Add", 2048, SchemaOptions.OPTIONAL),
         };
 
         private const int XDIM = 16;
@@ -28,17 +37,18 @@ namespace Substrate
         private TagNodeCompound _tree;
 
         private byte _y;
-        private YZXByteArray _blocks;
+        private YZXShortDataArray _blocks;
         private YZXNibbleArray _data;
         private YZXNibbleArray _blockLight;
         private YZXNibbleArray _skyLight;
         private YZXNibbleArray _addBlocks;
+        private PaletteBlock[] _palette;
 
-        private AnvilSection ()
+        private AquaticSection()
         {
         }
 
-        public AnvilSection (int y)
+        public AquaticSection(int y)
         {
             if (y < MIN_Y || y > MAX_Y)
                 throw new ArgumentOutOfRangeException();
@@ -47,7 +57,7 @@ namespace Substrate
             BuildNbtTree();
         }
 
-        public AnvilSection (TagNodeCompound tree)
+        public AquaticSection(TagNodeCompound tree)
         {
             LoadTree(tree);
         }
@@ -65,7 +75,7 @@ namespace Substrate
             }
         }
 
-        public YZXByteArray Blocks
+        public YZXShortDataArray Blocks
         {
             get { return _blocks; }
         }
@@ -112,9 +122,16 @@ namespace Substrate
             return true;
         }
 
-        #region INbtObject<AnvilSection> Members
 
-        public AnvilSection LoadTree(TagNode tree) {
+        public PaletteBlock[] Palette {
+            get {
+                return _palette;
+            }
+        }
+
+        #region INbtObject<AquaticSection> Members
+
+        public AquaticSection LoadTree(TagNode tree) {
             TagNodeCompound ctree = tree as TagNodeCompound;
             if (ctree == null) {
                 return null;
@@ -122,8 +139,35 @@ namespace Substrate
 
             _y = ctree["Y"] as TagNodeByte;
 
-            _blocks = new YZXByteArray(XDIM, YDIM, ZDIM, ctree["Blocks"] as TagNodeByteArray);
-            _data = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["Data"] as TagNodeByteArray);
+            var block_states = ctree["block_states"] as TagNodeCompound;
+
+            var palette = block_states["palette"] as TagNodeList;
+            if (palette == null) {
+                return null;
+            }
+            int palIndex = 0;
+            _palette = new PaletteBlock[palette.Count];
+            foreach (TagNodeCompound pal in palette) {
+                string name = pal["Name"] as TagNodeString;
+                /*string properties = pal["Properties"] as TagNodeList;
+                if (properties != null) {
+                    foreach(var prop in properties) {
+                        prop["Name"] 
+                    }
+                }*/
+
+                BlockInfo blockInfo;
+                string[] props = _emptyProps;
+                if (BlockInfo.BlockNameTable.TryGetValue(name, out blockInfo)) {
+                    _palette[palIndex++] = new PaletteBlock(blockInfo, props);
+                }
+            }
+
+            var data = ctree["Data"] as TagNodeLongArray;
+
+            _blocks = new YZXShortDataArray(new short[YDIM, ZDIM, XDIM]);
+            //_blocks = new YZXByteArray(XDIM, YDIM, ZDIM, ctree["Blocks"] as TagNodeByteArray);
+            //_data = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["Data"] as TagNodeByteArray);
             _skyLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["SkyLight"] as TagNodeByteArray);
             _blockLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["BlockLight"] as TagNodeByteArray);
 
@@ -136,7 +180,9 @@ namespace Substrate
             return this;
         }
 
-        public AnvilSection LoadTreeSafe (TagNode tree)
+        static string[] _emptyProps = new string[0];
+
+        public AquaticSection LoadTreeSafe (TagNode tree)
         {
             if (!ValidateTree(tree)) {
                 return null;
@@ -166,11 +212,11 @@ namespace Substrate
 
         #endregion
 
-        #region ICopyable<AnvilSection> Members
+        #region ICopyable<AquaticSection> Members
 
-        public AnvilSection Copy ()
+        public AquaticSection Copy ()
         {
-            return new AnvilSection().LoadTree(_tree.Copy());
+            return new AquaticSection().LoadTree(_tree.Copy());
         }
 
         #endregion
@@ -185,7 +231,7 @@ namespace Substrate
             TagNodeByteArray blockLight = new TagNodeByteArray(new byte[elements3 >> 1]);
             TagNodeByteArray addBlocks = new TagNodeByteArray(new byte[elements3 >> 1]);
 
-            _blocks = new YZXByteArray(XDIM, YDIM, ZDIM, blocks);
+            _blocks = new YZXShortDataArray(new short[YDIM, ZDIM, XDIM]);
             _data = new YZXNibbleArray(XDIM, YDIM, ZDIM, data);
             _skyLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, skyLight);
             _blockLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, blockLight);
@@ -200,6 +246,17 @@ namespace Substrate
             tree.Add("Add", addBlocks);
 
             _tree = tree;
+        }
+    }
+
+    public struct PaletteBlock
+    {
+        public BlockInfo Block;
+        public string[] Properties;
+
+        public PaletteBlock(BlockInfo blockInfo, string[] properties) : this() {
+            Block = blockInfo;
+            Properties = properties;
         }
     }
 }

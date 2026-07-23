@@ -191,6 +191,31 @@ namespace Substrate
     /// in the <see cref="ItemInfo"/> class.</remarks>
     public class ItemInfo
     {
+        /// <summary>
+        /// The maximum number of sequential blocks starting at 0 that can be registered.
+        /// </summary>
+        public const int MAX_BLOCKS = 4096;
+
+        /// <summary>
+        /// The maximum opacity value that can be assigned to a block (fully opaque).
+        /// </summary>
+        public const int MAX_OPACITY = 15;
+
+        /// <summary>
+        /// The minimum opacity value that can be assigned to a block (fully transparent).
+        /// </summary>
+        public const int MIN_OPACITY = 0;
+
+        /// <summary>
+        /// The maximum luminance value that can be assigned to a block.
+        /// </summary>
+        public const int MAX_LUMINANCE = 15;
+
+        /// <summary>
+        /// The minimum luminance value that can be assigned to a block.
+        /// </summary>
+        public const int MIN_LUMINANCE = 0;
+
         private static Random _rand = new Random();
 
         private class CacheTableDict<T> : ICacheTable<T>
@@ -237,7 +262,12 @@ namespace Substrate
 
         private int _id = 0;
         private string _name = "", _stringId = null;
-        private int _stack = 1;
+        private int _stack;
+        private int _opacity;
+        private readonly BlockState _state;
+        private int _luminance = MIN_LUMINANCE;
+        private bool _transmitLight;
+        private bool _blocksFluid;
 
         private static readonly CacheTableDict<ItemInfo> _itemTableCache = new CacheTableDict<ItemInfo>(_itemTable);
 
@@ -247,6 +277,36 @@ namespace Substrate
         public static ICacheTable<ItemInfo> ItemTable
         {
             get { return _itemTableCache; }
+        }
+
+        /// <summary>
+        /// Gets the block's opacity value.  An opacity of 0 is fully transparent to light.
+        /// </summary>
+        public int Opacity {
+            get { return _opacity; }
+        }
+
+        /// <summary>
+        /// Gets the block's luminance value.
+        /// </summary>
+        /// <remarks>Blocks with luminance act as light sources and transmit light to other blocks.</remarks>
+        public int Luminance {
+            get { return _luminance; }
+        }
+
+        /// <summary>
+        /// Checks whether the block transmits light to neighboring blocks.
+        /// </summary>
+        /// <remarks>A block may stop the transmission of light, but still be illuminated.</remarks>
+        public bool TransmitsLight {
+            get { return _transmitLight; }
+        }
+
+        /// <summary>
+        /// Checks whether the block partially or fully blocks the transmission of light.
+        /// </summary>
+        public bool ObscuresLight {
+            get { return _opacity > MIN_OPACITY || !_transmitLight; }
         }
 
         /// <summary>
@@ -289,16 +349,31 @@ namespace Substrate
             _itemTable[_id] = this;
         }
 
+        private readonly int _tick;
+
         /// <summary>
         /// Constructs a new <see cref="ItemInfo"/> record for the given item id and name.
         /// </summary>
         /// <param name="id">The id of an item type.</param>
         /// <param name="name">The name of an item type.</param>
-        public ItemInfo(int id, int meta, string name, string stringId = null) {
+        public ItemInfo(int id, int meta, string name, string stringId = null, int stack = 1, int opacity = MAX_OPACITY, BlockState state = BlockState.SOLID, bool? blocksFluid = null, int tick = 0) {
             _id = id;
             _name = name;
             _stringId = stringId;
             _itemTable[_id] = this;
+            _opacity = opacity;
+            _stack = stack;
+            _state = state;
+            _tick = tick;
+
+            if (blocksFluid != null) {
+                _blocksFluid = blocksFluid.Value;
+            } else if (_state == BlockState.SOLID) {
+                _blocksFluid = true;
+            } else {
+                _blocksFluid = false;
+            }
+
             if (stringId != null) {
                 _strTable[stringId] = this;
             }
@@ -325,7 +400,7 @@ namespace Substrate
             return list[_rand.Next(list.Count)];
         }
 
-        public static ItemInfo Air = new ItemInfo(0, 0, "Air", "minecraft:air");
+        public static ItemInfo Air = new ItemInfo(0, 0, "Air", "minecraft:air", opacity: 0, state: BlockState.NONSOLID);
         public static ItemInfo Stone = new ItemInfo(1, 0, "Stone", "minecraft:stone");
         public static ItemInfo Granite = new ItemInfo(1, 1, "Granite", "minecraft:stone");
         public static ItemInfo PolishedGranite = new ItemInfo(1, 2, "Polished Granite", "minecraft:stone");
@@ -333,7 +408,7 @@ namespace Substrate
         public static ItemInfo PolishedDiorite = new ItemInfo(1, 4, "Polished Diorite", "minecraft:stone");
         public static ItemInfo Andesite = new ItemInfo(1, 5, "Andesite", "minecraft:stone");
         public static ItemInfo PolishedAndesite = new ItemInfo(1, 6, "Polished Andesite", "minecraft:stone");
-        public static ItemInfo Grass = new ItemInfo(2, 0, "Grass", "minecraft:grass");
+        public static ItemInfo Grass = new ItemInfo(2, 0, "Grass", "minecraft:grass", tick:10);
         public static ItemInfo Dirt = new ItemInfo(3, 0, "Dirt", "minecraft:dirt");
         public static ItemInfo CoarseDirt = new ItemInfo(3, 1, "Coarse Dirt", "minecraft:dirt");
         public static ItemInfo Podzol = new ItemInfo(3, 2, "Podzol", "minecraft:dirt");
@@ -771,7 +846,7 @@ namespace Substrate
         public static ItemInfo IronPickaxe = new ItemInfo(257, 0, "Iron Pickaxe", "minecraft:iron_pickaxe");
         public static ItemInfo IronAxe = new ItemInfo(258, 0, "Iron Axe", "minecraft:iron_axe");
         public static ItemInfo FlintAndSteel = new ItemInfo(259, 0, "Flint and Steel", "minecraft:flint_and_steel");
-        public static ItemInfo Apple = new ItemInfo(260, 0, "Apple", "minecraft:apple").SetStackSize(64);
+        public static ItemInfo Apple = new ItemInfo(260, 0, "Apple", "minecraft:apple", stack: 64).SetStackSize(64);
         public static ItemInfo Bow = new ItemInfo(261, 0, "Bow", "minecraft:bow");
         public static ItemInfo Arrow = new ItemInfo(262, 0, "Arrow", "minecraft:arrow").SetStackSize(64);
         public static ItemInfo Coal = new ItemInfo(263, 0, "Coal", "minecraft:coal").SetStackSize(64);
