@@ -117,8 +117,11 @@ namespace Substrate
         public void SetBlockState(int x, int y, int z, string name, TagNodeCompound properties)
         {
             int index = _blocks.GetIndex(x, y, z);
-            ItemInfo info;
-            int id = ItemInfo.StrTable.TryGetValue(name, out info) ? info.ID : 0;
+            BlockInfo blockInfo;
+            ItemInfo itemInfo;
+            int id = BlockInfo.BlockNameTable.TryGetValue(name, out blockInfo)
+                ? blockInfo.ID
+                : (ItemInfo.StrTable.TryGetValue(name, out itemInfo) ? itemInfo.ID : 0);
             PaletteBlock state = new PaletteBlock(name, properties == null ? null : properties.Copy() as TagNodeCompound, id, 0);
             int paletteIndex = Array.IndexOf(_palette, state);
             if (paletteIndex < 0) {
@@ -268,9 +271,12 @@ namespace Substrate
             for (int i = 0; i < _palette.Length; i++)
                 if (_palette[i].ID == id && _palette[i].Data == data) return _palette[i];
 
-            ItemInfo info = ItemInfo.ItemTable[id];
-            if (info != null && info.StringId != null)
-                return new PaletteBlock(info.StringId, null, id, data);
+            BlockInfo blockInfo = BlockInfo.BlockTable[id];
+            if (blockInfo != null && blockInfo.StrID != null)
+                return new PaletteBlock(blockInfo.StrID, null, id, data);
+            ItemInfo itemInfo = ItemInfo.ItemTable[id];
+            if (itemInfo != null && itemInfo.StringId != null)
+                return new PaletteBlock(itemInfo.StringId, null, id, data);
             return new PaletteBlock("minecraft:air", null, 0, 0);
         }
 
@@ -396,6 +402,9 @@ namespace Substrate
             TagNode propertiesNode;
             if (tree == null || !tree.TryGetValue("Properties", out propertiesNode)) propertiesNode = null;
             TagNodeCompound properties = propertiesNode as TagNodeCompound;
+            BlockInfo blockInfo;
+            if (name != null && BlockInfo.BlockNameTable.TryGetValue(name, out blockInfo))
+                return new PaletteBlock(name, properties, blockInfo.ID, 0);
             ItemInfo info;
             if (name != null && ItemInfo.StrTable.TryGetValue(name, out info))
                 return new PaletteBlock(name, properties, info.ID, 0);

@@ -134,6 +134,55 @@ namespace Substrate.Tests
             }
         }
 
+        [TestMethod]
+        public void BlockInfoRegistersEveryUpdateAquaticBlock()
+        {
+            const string names =
+                "blue_ice carved_pumpkin dried_kelp_block oak_wood spruce_wood birch_wood jungle_wood acacia_wood dark_oak_wood " +
+                "stripped_oak_log stripped_spruce_log stripped_birch_log stripped_jungle_log stripped_acacia_log stripped_dark_oak_log " +
+                "stripped_oak_wood stripped_spruce_wood stripped_birch_wood stripped_jungle_wood stripped_acacia_wood stripped_dark_oak_wood " +
+                "tube_coral_block brain_coral_block bubble_coral_block fire_coral_block horn_coral_block " +
+                "dead_tube_coral_block dead_brain_coral_block dead_bubble_coral_block dead_fire_coral_block dead_horn_coral_block " +
+                "prismarine_slab prismarine_stairs prismarine_brick_slab prismarine_brick_stairs dark_prismarine_slab dark_prismarine_stairs petrified_oak_slab " +
+                "acacia_trapdoor birch_trapdoor dark_oak_trapdoor jungle_trapdoor spruce_trapdoor " +
+                "cave_air void_air kelp kelp_plant seagrass tall_seagrass turtle_egg " +
+                "tube_coral brain_coral bubble_coral fire_coral horn_coral " +
+                "tube_coral_fan brain_coral_fan bubble_coral_fan fire_coral_fan horn_coral_fan " +
+                "dead_tube_coral_fan dead_brain_coral_fan dead_bubble_coral_fan dead_fire_coral_fan dead_horn_coral_fan " +
+                "tube_coral_wall_fan brain_coral_wall_fan bubble_coral_wall_fan fire_coral_wall_fan horn_coral_wall_fan " +
+                "dead_tube_coral_wall_fan dead_brain_coral_wall_fan dead_bubble_coral_wall_fan dead_fire_coral_wall_fan dead_horn_coral_wall_fan " +
+                "acacia_button birch_button dark_oak_button jungle_button spruce_button " +
+                "acacia_pressure_plate birch_pressure_plate dark_oak_pressure_plate jungle_pressure_plate spruce_pressure_plate " +
+                "bubble_column conduit sea_pickle";
+
+            string[] expected = names.Split(' ');
+            Assert.AreEqual(88, expected.Length);
+            Assert.AreEqual(expected.Length, BlockInfo.AquaticBlocks.Count);
+            foreach (string name in expected) {
+                BlockInfo info;
+                Assert.IsTrue(BlockInfo.BlockNameTable.TryGetValue("minecraft:" + name, out info), name);
+                Assert.IsTrue(info.Registered, name);
+                Assert.AreEqual("minecraft:" + name, info.StrID);
+            }
+
+            Assert.AreEqual(BlockState.FLUID, BlockInfo.BlockNameTable["minecraft:bubble_column"].State);
+            Assert.AreEqual(BlockInfo.MAX_LUMINANCE, BlockInfo.BlockNameTable["minecraft:conduit"].Luminance);
+        }
+
+        [TestMethod]
+        public void AquaticPaletteUsesRegisteredBlockInfo()
+        {
+            int[] states = new int[4096];
+            states[0] = 1;
+            TagNodeCompound sectionTree = BuildSection(states, false);
+            sectionTree["Palette"].ToTagList()[1].ToTagCompound()["Name"] = new TagNodeString("minecraft:blue_ice");
+
+            AquaticSection section = new AquaticSection(sectionTree, 1631);
+            BlockInfo blueIce = BlockInfo.BlockNameTable["minecraft:blue_ice"];
+            Assert.AreEqual(blueIce.ID, section.Blocks[0, 0, 0]);
+            Assert.AreEqual("minecraft:blue_ice", section.GetBlockName(0, 0, 0));
+        }
+
         private static void AssertSectionRoundTrip(int dataVersion, bool padded)
         {
             int[] states = new int[4096];
