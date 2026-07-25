@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Substrate.Core;
@@ -167,6 +168,27 @@ namespace Substrate.Tests
 
             Assert.AreEqual(BlockState.FLUID, BlockInfo.BlockNameTable["minecraft:bubble_column"].State);
             Assert.AreEqual(BlockInfo.MAX_LUMINANCE, BlockInfo.BlockNameTable["minecraft:conduit"].Luminance);
+        }
+
+        [TestMethod]
+        public void BlockInfoRegistersCompleteMinecraft262Registry()
+        {
+            Assert.AreEqual("26.2", BlockInfo.ModernBlockRegistryVersion);
+            Assert.AreEqual(1196, BlockInfo.ModernBlocks.Count);
+
+            HashSet<BlockInfo> registrations = new HashSet<BlockInfo>();
+            foreach (BlockInfo info in BlockInfo.ModernBlocks) {
+                Assert.IsTrue(info.Registered);
+                registrations.Add(info);
+            }
+
+            Assert.IsTrue(registrations.Count > 1000);
+            Assert.AreSame(BlockInfo.Stone, BlockInfo.BlockNameTable["minecraft:stone"]);
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:blue_ice"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:trial_spawner"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:creaking_heart"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:potent_sulfur"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:chiseled_cinnabar"));
         }
 
         [TestMethod]

@@ -58,6 +58,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Source\Data\BlockRegistry-26.2.txt">
+      <LogicalName>Substrate.Data.BlockRegistry-26.2.txt</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
   </ItemGroup>
