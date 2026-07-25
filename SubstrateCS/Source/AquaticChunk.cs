@@ -15,14 +15,14 @@ namespace Substrate
             {
                 new SchemaNodeList("Sections", TagType.TAG_COMPOUND, AquaticSection.SectionSchema),
                 new SchemaNodeList("Lights", TagType.TAG_LIST, SchemaOptions.OPTIONAL),
-                new SchemaNodeList("PostProcessing", TagType.TAG_LIST),
+                new SchemaNodeList("PostProcessing", TagType.TAG_LIST, SchemaOptions.OPTIONAL),
                 new SchemaNodeIntArray("Biomes", 256, SchemaOptions.OPTIONAL),
-                new SchemaNodeCompound("Heightmaps") {
-                    new SchemaNodeLongArray("OCEAN_FLOOR", 36),
-                    new SchemaNodeLongArray("MOTION_BLOCKING_NO_LEAVES", 36),
-                    new SchemaNodeLongArray("MOTION_BLOCKING", 36),
-                    new SchemaNodeLongArray("WORLD_SURFACE", 36),
-                    new SchemaNodeLongArray("LIGHT_BLOCKING", 36),
+                new SchemaNodeCompound("Heightmaps", SchemaOptions.OPTIONAL) {
+                    new SchemaNodeLongArray("OCEAN_FLOOR", 36, SchemaOptions.OPTIONAL),
+                    new SchemaNodeLongArray("MOTION_BLOCKING_NO_LEAVES", 36, SchemaOptions.OPTIONAL),
+                    new SchemaNodeLongArray("MOTION_BLOCKING", 36, SchemaOptions.OPTIONAL),
+                    new SchemaNodeLongArray("WORLD_SURFACE", 36, SchemaOptions.OPTIONAL),
+                    new SchemaNodeLongArray("LIGHT_BLOCKING", 36, SchemaOptions.OPTIONAL),
                 },
                 new SchemaNodeList("Entities", TagType.TAG_COMPOUND, SchemaOptions.CREATE_ON_MISSING),
                 new SchemaNodeList("TileEntities", TagType.TAG_COMPOUND, TileEntity.Schema, SchemaOptions.CREATE_ON_MISSING),
@@ -51,7 +51,10 @@ namespace Substrate
         private IDataArray3 _skyLight;
 
         private ZXIntArray _heightMap;
-        private ZXByteArray _biomes;
+        private IDataArray2 _biomes;
+        private int _dataVersion;
+        private bool _modern;
+        private int _minimumSectionY;
 
         private TagNodeList _entities;
         private TagNodeList _tileEntities;
@@ -104,8 +107,70 @@ namespace Substrate
 
         public bool IsTerrainPopulated
         {
-            get { return _tree.Root["Level"].ToTagCompound()["TerrainPopulated"].ToTagByte() == 1; }
-            set { _tree.Root["Level"].ToTagCompound()["TerrainPopulated"].ToTagByte().Data = (byte)(value ? 1 : 0); }
+            get {
+                TagNodeCompound chunk = ChunkTag;
+                if (_modern) {
+                    TagNode statusNode;
+                    chunk.TryGetValue("Status", out statusNode);
+                    TagNodeString status = statusNode as TagNodeString;
+                    return status != null && status.Data == "full";
+                }
+                TagNode valueNode;
+                chunk.TryGetValue("TerrainPopulated", out valueNode);
+                TagNodeByte value = valueNode as TagNodeByte;
+                return value != null && value.Data != 0;
+            }
+            set {
+                if (_modern) ChunkTag["Status"] = new TagNodeString(value ? "full" : "empty");
+                else ChunkTag["TerrainPopulated"] = new TagNodeByte((byte)(value ? 1 : 0));
+            }
+        }
+
+        /// <summary>The lowest world block Y represented by <see cref="Blocks"/>.</summary>
+        public int MinimumY { get { return _minimumSectionY * 16; } }
+
+        /// <summary>Gets a numeric block ID using a world Y coordinate.</summary>
+        public int GetBlockID(int x, int y, int z)
+        {
+            return _blockManager.GetID(x, y - MinimumY, z);
+        }
+
+        /// <summary>Sets a numeric block ID using a world Y coordinate.</summary>
+        public void SetBlockID(int x, int y, int z, int id)
+        {
+            _blockManager.SetID(x, y - MinimumY, z, id);
+        }
+
+        /// <summary>Gets a namespaced block name using a world Y coordinate.</summary>
+        public string GetBlockName(int x, int y, int z)
+        {
+            AquaticSection section = GetSectionForWorldY(y);
+            return section.GetBlockName(x, y & 15, z);
+        }
+
+        /// <summary>Sets a namespaced block state using a world Y coordinate.</summary>
+        public void SetBlockState(int x, int y, int z, string name, TagNodeCompound properties)
+        {
+            AquaticSection section = GetSectionForWorldY(y);
+            section.SetBlockState(x, y & 15, z, name, properties);
+            _blockManager.IsDirty = true;
+        }
+
+        private AquaticSection GetSectionForWorldY(int y)
+        {
+            int sectionY = (int)Math.Floor(y / 16.0);
+            int index = sectionY - _minimumSectionY;
+            if (index < 0 || index >= _sections.Length) throw new ArgumentOutOfRangeException("y");
+            return _sections[index];
+        }
+
+        private TagNodeCompound ChunkTag {
+            get {
+                TagNode level;
+                return _tree.Root.TryGetValue("Level", out level)
+                    ? level as TagNodeCompound
+                    : _tree.Root;
+            }
         }
 
         public static AquaticChunk Create (int x, int z)
@@ -148,8 +213,8 @@ namespace Substrate
             _cx = x;
             _cz = z;
 
-            _tree.Root["Level"].ToTagCompound()["xPos"].ToTagInt().Data = x;
-            _tree.Root["Level"].ToTagCompound()["zPos"].ToTagInt().Data = z;
+            ChunkTag["xPos"].ToTagInt().Data = x;
+            ChunkTag["zPos"].ToTagInt().Data = z;
 
             // Update tile entity coordinates
 
@@ -212,8 +277,13 @@ namespace Substrate
 
             BuildConditional();
 
-            NbtTree tree = new NbtTree();
-            tree.Root["Level"] = BuildTree();
+            NbtTree tree;
+            if (_modern) {
+                tree = new NbtTree(BuildTree().ToTagCompound(), _tree.Name);
+            } else {
+                tree = _tree.Copy();
+                tree.Root["Level"] = BuildTree();
+            }
 
             tree.WriteTo(outStream);
 
@@ -230,15 +300,25 @@ namespace Substrate
             }
 
             _tree = new NbtTree(ctree);
+            TagNodeInt version = _tree.Root["DataVersion"] as TagNodeInt;
+            _dataVersion = version == null ? 1631 : version.Data;
 
-            TagNodeCompound level = _tree.Root["Level"] as TagNodeCompound;
+            TagNodeCompound level;
+            TagNode levelNode;
+            _modern = !_tree.Root.TryGetValue("Level", out levelNode);
+            level = _modern ? _tree.Root : levelNode as TagNodeCompound;
 
-            TagNodeList sections = level["Sections"] as TagNodeList;
+            string sectionsKey = _modern ? "sections" : "Sections";
+            TagNodeList sections = level[sectionsKey] as TagNodeList;
+            _minimumSectionY = _modern ? -4 : 0;
+            int maximumSectionY = _modern ? 19 : 15;
+            _sections = new AquaticSection[maximumSectionY - _minimumSectionY + 1];
             foreach (TagNodeCompound section in sections) {
-                AquaticSection aquaticSection = new AquaticSection(section);
-                if (aquaticSection.Y < 0 || aquaticSection.Y >= _sections.Length)
+                AquaticSection aquaticSection = new AquaticSection(section, _dataVersion);
+                int sectionIndex = aquaticSection.Y - _minimumSectionY;
+                if (sectionIndex < 0 || sectionIndex >= _sections.Length)
                     continue;
-                _sections[aquaticSection.Y] = aquaticSection;
+                _sections[sectionIndex] = aquaticSection;
             }
 
             FusedDataArray3[] blocksBA = new FusedDataArray3[_sections.Length];
@@ -248,7 +328,7 @@ namespace Substrate
 
             for (int i = 0; i < _sections.Length; i++) {
                 if (_sections[i] == null)
-                    _sections[i] = new AquaticSection(i);
+                    _sections[i] = new AquaticSection(i + _minimumSectionY, _dataVersion, _modern);
 
                 blocksBA[i] = new FusedDataArray3(_sections[i].AddBlocks, _sections[i].Blocks);
                 dataBA[i] = _sections[i].Data;
@@ -261,40 +341,61 @@ namespace Substrate
             _skyLight = new CompositeDataArray3(skyLightBA);
             _blockLight = new CompositeDataArray3(blockLightBA);
             
-            _heightMap = new ZXIntArray(XDIM, ZDIM, level["HeightMap"] as TagNodeIntArray);
+            TagNode optionalNode;
+            level.TryGetValue("HeightMap", out optionalNode);
+            TagNodeIntArray legacyHeight = optionalNode as TagNodeIntArray;
+            if (legacyHeight == null) {
+                level.TryGetValue("Heightmaps", out optionalNode);
+                legacyHeight = new TagNodeIntArray(ReadHeightMap(optionalNode as TagNodeCompound));
+            }
+            _heightMap = new ZXIntArray(XDIM, ZDIM, legacyHeight);
 
-            if (level.ContainsKey("Biomes"))
-                _biomes = new ZXByteArray(XDIM, ZDIM, level["Biomes"] as TagNodeByteArray);
+            level.TryGetValue("Biomes", out optionalNode);
+            if (optionalNode is TagNodeIntArray)
+                _biomes = new ZXIntArray(XDIM, ZDIM, optionalNode as TagNodeIntArray);
+            else if (optionalNode is TagNodeByteArray)
+                _biomes = new ZXByteArray(XDIM, ZDIM, optionalNode as TagNodeByteArray);
             else {
-                level["Biomes"] = new TagNodeByteArray(new byte[256]);
-                _biomes = new ZXByteArray(XDIM, ZDIM, level["Biomes"] as TagNodeByteArray);
+                TagNodeIntArray defaultBiomes = new TagNodeIntArray(new int[256]);
+                if (!_modern) level["Biomes"] = defaultBiomes;
+                _biomes = new ZXIntArray(XDIM, ZDIM, defaultBiomes);
                 for (int x = 0; x < XDIM; x++)
                     for (int z = 0; z < ZDIM; z++)
                         _biomes[x, z] = BiomeType.Default;
             }
 
-            _entities = level["Entities"] as TagNodeList;
-            _tileEntities = level["TileEntities"] as TagNodeList;
+            level.TryGetValue(_modern ? "entities" : "Entities", out optionalNode);
+            _entities = optionalNode as TagNodeList;
+            if (_entities == null) _entities = new TagNodeList(TagType.TAG_COMPOUND);
+            level.TryGetValue(_modern ? "block_entities" : "TileEntities", out optionalNode);
+            _tileEntities = optionalNode as TagNodeList;
+            if (_tileEntities == null) _tileEntities = new TagNodeList(TagType.TAG_COMPOUND);
 
-            if (level.ContainsKey("TileTicks"))
+            if (!_modern && level.ContainsKey("TileTicks"))
                 _tileTicks = level["TileTicks"] as TagNodeList;
             else
                 _tileTicks = new TagNodeList(TagType.TAG_COMPOUND);
 
             // List-type patch up
             if (_entities.Count == 0) {
-                level["Entities"] = new TagNodeList(TagType.TAG_COMPOUND);
-                _entities = level["Entities"] as TagNodeList;
+                if (!_modern) {
+                    level["Entities"] = new TagNodeList(TagType.TAG_COMPOUND);
+                    _entities = level["Entities"] as TagNodeList;
+                }
             }
 
             if (_tileEntities.Count == 0) {
-                level["TileEntities"] = new TagNodeList(TagType.TAG_COMPOUND);
-                _tileEntities = level["TileEntities"] as TagNodeList;
+                if (!_modern) {
+                    level["TileEntities"] = new TagNodeList(TagType.TAG_COMPOUND);
+                    _tileEntities = level["TileEntities"] as TagNodeList;
+                }
             }
 
             if (_tileTicks.Count == 0) {
-                level["TileTicks"] = new TagNodeList(TagType.TAG_COMPOUND);
-                _tileTicks = level["TileTicks"] as TagNodeList;
+                if (!_modern) {
+                    level["TileTicks"] = new TagNodeList(TagType.TAG_COMPOUND);
+                    _tileTicks = level["TileTicks"] as TagNodeList;
+                }
             }
 
             _cx = level["xPos"].ToTagInt();
@@ -308,18 +409,6 @@ namespace Substrate
         }
 
         public AquaticChunk LoadTreeSafe(TagNode tree) {
-            var level = tree.ToTagCompound()["Level"].ToTagCompound();
-
-            var sections = level["Sections"].ToTagList();
-            var section = sections[0].ToTagCompound();
-            var blockStates = section["BlockStates"].ToTagLongArray();
-            var blockLight = section["BlockLight"].ToTagByteArray();
-            var skyLight = section["SkyLight"].ToTagByteArray();
-            var palette = section["Palette"].ToTagList();
-            foreach (var item in palette) {
-                var block = item.ToTagCompound();
-                var name = block["Name"].ToTagString();
-            }
             if (!ValidateTree(tree)) {
                 return null;
             }
@@ -339,7 +428,7 @@ namespace Substrate
 
         public TagNode BuildTree ()
         {
-            TagNodeCompound level = _tree.Root["Level"] as TagNodeCompound;
+            TagNodeCompound level = ChunkTag;
             TagNodeCompound levelCopy = new TagNodeCompound();
             foreach (KeyValuePair<string, TagNode> node in level)
                 levelCopy.Add(node.Key, node.Value);
@@ -349,9 +438,9 @@ namespace Substrate
                 if (ShouldIncludeSection(_sections[i]))
                     sections.Add(_sections[i].BuildTree());
 
-            levelCopy["Sections"] = sections;
+            levelCopy[_modern ? "sections" : "Sections"] = sections;
 
-            if (_tileTicks.Count == 0)
+            if (!_modern && _tileTicks.Count == 0)
                 levelCopy.Remove("TileTicks");
 
             return levelCopy;
@@ -359,8 +448,32 @@ namespace Substrate
 
         public bool ValidateTree (TagNode tree)
         {
+            TagNodeCompound root = tree as TagNodeCompound;
+            if (root != null && !root.ContainsKey("Level")) {
+                TagNode sections, x, z;
+                return root.TryGetValue("sections", out sections) && sections is TagNodeList &&
+                    root.TryGetValue("xPos", out x) && x is TagNodeInt &&
+                    root.TryGetValue("zPos", out z) && z is TagNodeInt;
+            }
             NbtVerifier v = new NbtVerifier(tree, LevelSchema);
             return v.Verify();
+        }
+
+        private static int[] ReadHeightMap(TagNodeCompound heightmaps)
+        {
+            int[] result = new int[256];
+            if (heightmaps == null) return result;
+            TagNode node;
+            heightmaps.TryGetValue("WORLD_SURFACE", out node);
+            TagNodeLongArray source = node as TagNodeLongArray;
+            if (source == null) {
+                heightmaps.TryGetValue("MOTION_BLOCKING", out node);
+                source = node as TagNodeLongArray;
+            }
+            if (source == null) return result;
+            for (int i = 0; i < result.Length; i++)
+                result[i] = AquaticSection.ReadPacked(source.Data, i, 9, false);
+            return result;
         }
 
         #endregion
@@ -376,7 +489,7 @@ namespace Substrate
 
         private void BuildConditional ()
         {
-            TagNodeCompound level = _tree.Root["Level"] as TagNodeCompound;
+            TagNodeCompound level = ChunkTag;
             if (_tileTicks != _blockManager.TileTicks && _blockManager.TileTicks.Count > 0) {
                 _tileTicks = _blockManager.TileTicks;
                 level["TileTicks"] = _tileTicks;
@@ -385,13 +498,14 @@ namespace Substrate
 
         private void BuildNBTTree ()
         {
+            _dataVersion = 1631;
             int elements2 = XDIM * ZDIM;
 
             _sections = new AquaticSection[16];
             TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND);
 
             for (int i = 0; i < _sections.Length; i++) {
-                _sections[i] = new AquaticSection(i);
+                _sections[i] = new AquaticSection(i, _dataVersion);
                 sections.Add(_sections[i].BuildTree());
             }
 
@@ -415,8 +529,8 @@ namespace Substrate
             TagNodeIntArray heightMap = new TagNodeIntArray(new int[elements2]);
             _heightMap = new ZXIntArray(XDIM, ZDIM, heightMap);
 
-            TagNodeByteArray biomes = new TagNodeByteArray(new byte[elements2]);
-            _biomes = new ZXByteArray(XDIM, ZDIM, biomes);
+            TagNodeIntArray biomes = new TagNodeIntArray(new int[elements2]);
+            _biomes = new ZXIntArray(XDIM, ZDIM, biomes);
             for (int x = 0; x < XDIM; x++)
                 for (int z = 0; z < ZDIM; z++)
                     _biomes[x, z] = BiomeType.Default;
@@ -438,10 +552,12 @@ namespace Substrate
             level.Add("TerrainPopulated", new TagNodeByte());
 
             _tree = new NbtTree();
+            _tree.Root.Add("DataVersion", new TagNodeInt(_dataVersion));
             _tree.Root.Add("Level", level);
 
             _blockManager = new AlphaBlockCollection(_blocks, _data, _blockLight, _skyLight, _heightMap, _tileEntities);
             _entityManager = new EntityCollection(_entities);
+            _biomeManager = new AquaticBiomeCollection(_biomes);
         }
 
         private int Timestamp ()

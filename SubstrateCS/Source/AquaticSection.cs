@@ -1,262 +1,429 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
-using Substrate.Nbt;
 using Substrate.Core;
+using Substrate.Nbt;
 
 namespace Substrate
 {
+    /// <summary>Represents a palette-based Anvil section (Minecraft 1.13 through 1.17).</summary>
     public class AquaticSection : INbtObject<AquaticSection>, ICopyable<AquaticSection>
     {
-        public static SchemaNodeCompound SectionSchema = new SchemaNodeCompound() {
+        public static readonly SchemaNodeCompound SectionSchema = new SchemaNodeCompound() {
+            new SchemaNodeList("Palette", TagType.TAG_COMPOUND, new SchemaNodeCompound() {
+                new SchemaNodeString("Name", null),
+                new SchemaNodeCompound("Properties", SchemaOptions.OPTIONAL),
+            }),
+            new SchemaNodeLongArray("BlockStates", 0, SchemaOptions.OPTIONAL),
+            new SchemaNodeArray("SkyLight", 2048, SchemaOptions.OPTIONAL),
+            new SchemaNodeArray("BlockLight", 2048, SchemaOptions.OPTIONAL),
+            new SchemaNodeScaler("Y", TagType.TAG_BYTE),
+        };
+        public static readonly SchemaNodeCompound ModernSectionSchema = new SchemaNodeCompound() {
             new SchemaNodeCompound("block_states") {
                 new SchemaNodeList("palette", TagType.TAG_COMPOUND, new SchemaNodeCompound() {
                     new SchemaNodeString("Name", null),
-                    new SchemaNodeCompound("Properties", SchemaOptions.OPTIONAL)
+                    new SchemaNodeCompound("Properties", SchemaOptions.OPTIONAL),
                 }),
                 new SchemaNodeLongArray("data", 0, SchemaOptions.OPTIONAL),
             },
-            new SchemaNodeCompound("biomes") {
-                new SchemaNodeList("palette", TagType.TAG_COMPOUND, new SchemaNodeCompound() {
-                    new SchemaNodeString("Name", null),
-                }),
-                new SchemaNodeLongArray("data", 256, SchemaOptions.OPTIONAL),
-            },
-            new SchemaNodeArray("SkyLight", 2048),
-            new SchemaNodeArray("BlockLight", 2048),
+            new SchemaNodeCompound("biomes", SchemaOptions.OPTIONAL),
+            new SchemaNodeArray("SkyLight", 2048, SchemaOptions.OPTIONAL),
+            new SchemaNodeArray("BlockLight", 2048, SchemaOptions.OPTIONAL),
             new SchemaNodeScaler("Y", TagType.TAG_BYTE),
         };
 
-        private const int XDIM = 16;
-        private const int YDIM = 16;
-        private const int ZDIM = 16;
-
-        private const int MIN_Y = 0;
-        private const int MAX_Y = 15;
-
+        private const int Size = 16;
+        private const int BlockCount = 4096;
         private TagNodeCompound _tree;
-
         private byte _y;
         private YZXShortDataArray _blocks;
         private YZXNibbleArray _data;
         private YZXNibbleArray _blockLight;
         private YZXNibbleArray _skyLight;
         private YZXNibbleArray _addBlocks;
+        private TagNodeByteArray _blockLightTag;
+        private TagNodeByteArray _skyLightTag;
         private PaletteBlock[] _palette;
+        private int[] _originalPaletteIndices;
+        private short[] _originalIds;
+        private byte[] _originalData;
+        private int _dataVersion;
+        private bool _modern;
 
-        private AquaticSection()
+        private AquaticSection() { }
+
+        public AquaticSection(int y) : this(y, 1631, false) { }
+
+        public AquaticSection(int y, int dataVersion) : this(y, dataVersion, false) { }
+
+        internal AquaticSection(int y, int dataVersion, bool modern)
         {
-        }
-
-        public AquaticSection(int y)
-        {
-            if (y < MIN_Y || y > MAX_Y)
-                throw new ArgumentOutOfRangeException();
-
-            _y = (byte)y;
+            if (y < -128 || y > 127) throw new ArgumentOutOfRangeException("y");
+            _y = unchecked((byte)(sbyte)y);
+            _dataVersion = dataVersion;
+            _modern = modern;
             BuildNbtTree();
         }
 
-        public AquaticSection(TagNodeCompound tree)
+        public AquaticSection(TagNodeCompound tree) : this(tree, 1631) { }
+
+        public AquaticSection(TagNodeCompound tree, int dataVersion)
         {
-            LoadTree(tree);
+            _dataVersion = dataVersion;
+            if (LoadTree(tree) == null) throw new ArgumentException("Invalid palette section.", "tree");
         }
 
-        public int Y
-        {
-            get { return _y; }
-            set
-            {
-                if (value < MIN_Y || value > MAX_Y)
-                    throw new ArgumentOutOfRangeException();
-
-                _y = (byte)value;
-                _tree["Y"].ToTagByte().Data = _y;
+        public int Y {
+            get { return (sbyte)_y; }
+            set {
+                if (value < -128 || value > 127) throw new ArgumentOutOfRangeException("value");
+                _y = unchecked((byte)(sbyte)value);
+                _tree["Y"] = new TagNodeByte(_y);
             }
         }
 
-        public YZXShortDataArray Blocks
-        {
-            get { return _blocks; }
-        }
+        public YZXShortDataArray Blocks { get { return _blocks; } }
+        public YZXNibbleArray Data { get { return _data; } }
+        public YZXNibbleArray BlockLight { get { return _blockLight; } }
+        public YZXNibbleArray SkyLight { get { return _skyLight; } }
+        public YZXNibbleArray AddBlocks { get { return _addBlocks; } }
+        public PaletteBlock[] Palette { get { return _palette; } }
 
-        public YZXNibbleArray Data
+        public bool CheckEmpty()
         {
-            get { return _data; }
-        }
-
-        public YZXNibbleArray BlockLight
-        {
-            get { return _blockLight; }
-        }
-
-        public YZXNibbleArray SkyLight
-        {
-            get { return _skyLight; }
-        }
-
-        public YZXNibbleArray AddBlocks
-        {
-            get { return _addBlocks; }
-        }
-
-        public bool CheckEmpty ()
-        {
-            return CheckBlocksEmpty() && CheckAddBlocksEmpty();
-        }
-
-        private bool CheckBlocksEmpty ()
-        {
-            for (int i = 0; i < _blocks.Length; i++)
-                if (_blocks[i] != 0)
-                    return false;
+            for (int i = 0; i < _blocks.Length; i++) {
+                if (_blocks[i] != 0) return false;
+                if (_originalPaletteIndices != null &&
+                    _blocks[i] == _originalIds[i] &&
+                    _data[i] == _originalData[i] &&
+                    _palette[_originalPaletteIndices[i]].Name != "minecraft:air") return false;
+            }
             return true;
         }
 
-        private bool CheckAddBlocksEmpty ()
+        /// <summary>Gets the namespaced block-state name at local section coordinates.</summary>
+        public string GetBlockName(int x, int y, int z)
         {
-            if (_addBlocks != null)
-                for (int i = 0; i < _addBlocks.Length; i++)
-                    if (_addBlocks[i] != 0)
-                        return false;
-            return true;
+            return GetPaletteBlock(x, y, z).Name;
         }
 
-
-        public PaletteBlock[] Palette {
-            get {
-                return _palette;
-            }
+        /// <summary>Gets the block-state properties at local section coordinates.</summary>
+        public TagNodeCompound GetBlockProperties(int x, int y, int z)
+        {
+            return GetPaletteBlock(x, y, z).Properties;
         }
 
-        #region INbtObject<AquaticSection> Members
-
-        public AquaticSection LoadTree(TagNode tree) {
-            TagNodeCompound ctree = tree as TagNodeCompound;
-            if (ctree == null) {
-                return null;
+        /// <summary>Sets a namespaced block state without requiring a legacy numeric block ID.</summary>
+        public void SetBlockState(int x, int y, int z, string name, TagNodeCompound properties)
+        {
+            int index = _blocks.GetIndex(x, y, z);
+            ItemInfo info;
+            int id = ItemInfo.StrTable.TryGetValue(name, out info) ? info.ID : 0;
+            PaletteBlock state = new PaletteBlock(name, properties == null ? null : properties.Copy() as TagNodeCompound, id, 0);
+            int paletteIndex = Array.IndexOf(_palette, state);
+            if (paletteIndex < 0) {
+                PaletteBlock[] expanded = new PaletteBlock[_palette.Length + 1];
+                _palette.CopyTo(expanded, 0);
+                paletteIndex = _palette.Length;
+                expanded[paletteIndex] = state;
+                _palette = expanded;
             }
+            _blocks[index] = id;
+            _data[index] = 0;
+            _originalPaletteIndices[index] = paletteIndex;
+            _originalIds[index] = (short)id;
+            _originalData[index] = 0;
+        }
 
-            _y = ctree["Y"] as TagNodeByte;
+        private PaletteBlock GetPaletteBlock(int x, int y, int z)
+        {
+            int index = _blocks.GetIndex(x, y, z);
+            if (_originalPaletteIndices != null &&
+                _blocks[index] == _originalIds[index] &&
+                _data[index] == _originalData[index])
+                return _palette[_originalPaletteIndices[index]];
+            return FindPaletteBlock(_blocks[index], _data[index]);
+        }
 
-            var block_states = ctree["block_states"] as TagNodeCompound;
-
-            var palette = block_states["palette"] as TagNodeList;
-            if (palette == null) {
-                return null;
-            }
-            int palIndex = 0;
-            _palette = new PaletteBlock[palette.Count];
-            foreach (TagNodeCompound pal in palette) {
-                string name = pal["Name"] as TagNodeString;
-                /*string properties = pal["Properties"] as TagNodeList;
-                if (properties != null) {
-                    foreach(var prop in properties) {
-                        prop["Name"] 
-                    }
-                }*/
-
-                BlockInfo blockInfo;
-                string[] props = _emptyProps;
-                if (BlockInfo.BlockNameTable.TryGetValue(name, out blockInfo)) {
-                    _palette[palIndex++] = new PaletteBlock(blockInfo, props);
+        public AquaticSection LoadTree(TagNode tree)
+        {
+            TagNodeCompound section = tree as TagNodeCompound;
+            if (section == null) return null;
+            TagNodeByte y = section["Y"] as TagNodeByte;
+            TagNode paletteNode;
+            section.TryGetValue("Palette", out paletteNode);
+            TagNodeList paletteTag = paletteNode as TagNodeList;
+            TagNodeCompound blockStatesContainer = null;
+            if (paletteTag == null) {
+                TagNode containerNode;
+                section.TryGetValue("block_states", out containerNode);
+                blockStatesContainer = containerNode as TagNodeCompound;
+                if (blockStatesContainer != null) {
+                    blockStatesContainer.TryGetValue("palette", out paletteNode);
+                    paletteTag = paletteNode as TagNodeList;
+                    _modern = true;
                 }
             }
+            if (y == null || paletteTag == null || paletteTag.Count == 0) return null;
 
-            var data = ctree["Data"] as TagNodeLongArray;
+            _y = y.Data;
+            _tree = section;
+            _palette = new PaletteBlock[paletteTag.Count];
+            for (int i = 0; i < paletteTag.Count; i++)
+                _palette[i] = PaletteBlock.FromTree(paletteTag[i] as TagNodeCompound);
 
-            _blocks = new YZXShortDataArray(new short[YDIM, ZDIM, XDIM]);
-            //_blocks = new YZXByteArray(XDIM, YDIM, ZDIM, ctree["Blocks"] as TagNodeByteArray);
-            //_data = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["Data"] as TagNodeByteArray);
-            _skyLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["SkyLight"] as TagNodeByteArray);
-            _blockLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["BlockLight"] as TagNodeByteArray);
+            short[,,] ids = new short[Size, Size, Size];
+            TagNodeByteArray metadataTag = new TagNodeByteArray(new byte[BlockCount / 2]);
+            _blocks = new YZXShortDataArray(ids);
+            _data = new YZXNibbleArray(Size, Size, Size, metadataTag);
+            _originalPaletteIndices = new int[BlockCount];
+            _originalIds = new short[BlockCount];
+            _originalData = new byte[BlockCount];
 
-            if (!ctree.ContainsKey("Add"))
-                ctree["Add"] = new TagNodeByteArray(new byte[2048]);
-            _addBlocks = new YZXNibbleArray(XDIM, YDIM, ZDIM, ctree["Add"] as TagNodeByteArray);
+            TagNode statesNode;
+            if (_modern) blockStatesContainer.TryGetValue("data", out statesNode);
+            else section.TryGetValue("BlockStates", out statesNode);
+            TagNodeLongArray states = statesNode as TagNodeLongArray;
+            int bits = Math.Max(4, BitsFor(_palette.Length));
+            for (int i = 0; i < BlockCount; i++) {
+                int paletteIndex = _palette.Length == 1 ? 0 : ReadPacked(states == null ? null : states.Data, i, bits, UsesPaddedPacking);
+                if (paletteIndex < 0 || paletteIndex >= _palette.Length) paletteIndex = 0;
+                _blocks[i] = _palette[paletteIndex].ID;
+                _data[i] = _palette[paletteIndex].Data;
+                _originalPaletteIndices[i] = paletteIndex;
+                _originalIds[i] = (short)_blocks[i];
+                _originalData[i] = (byte)_data[i];
+            }
 
-            _tree = ctree;
-
+            _skyLight = NibbleArray(section, "SkyLight", out _skyLightTag);
+            _blockLight = NibbleArray(section, "BlockLight", out _blockLightTag);
+            _addBlocks = new YZXNibbleArray(Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
             return this;
         }
 
-        static string[] _emptyProps = new string[0];
-
-        public AquaticSection LoadTreeSafe (TagNode tree)
+        private static YZXNibbleArray NibbleArray(TagNodeCompound tree, string name, out TagNodeByteArray tag)
         {
-            if (!ValidateTree(tree)) {
-                return null;
+            TagNode value;
+            tree.TryGetValue(name, out value);
+            tag = value as TagNodeByteArray;
+            if (tag == null || tag.Data.Length != BlockCount / 2) {
+                tag = new TagNodeByteArray(new byte[BlockCount / 2]);
+                tree[name] = tag;
             }
-
-            return LoadTree(tree);
+            return new YZXNibbleArray(Size, Size, Size, tag);
         }
 
-        public TagNode BuildTree ()
+        public AquaticSection LoadTreeSafe(TagNode tree)
         {
-            TagNodeCompound copy = new TagNodeCompound();
-            foreach (KeyValuePair<string, TagNode> node in _tree) {
-                copy.Add(node.Key, node.Value);
+            return ValidateTree(tree) ? LoadTree(tree) : null;
+        }
+
+        public TagNode BuildTree()
+        {
+            List<PaletteBlock> palette = new List<PaletteBlock>();
+            int[] indices = new int[BlockCount];
+            for (int i = 0; i < BlockCount; i++) {
+                PaletteBlock block;
+                if (_originalPaletteIndices != null &&
+                    _blocks[i] == _originalIds[i] &&
+                    _data[i] == _originalData[i]) {
+                    block = _palette[_originalPaletteIndices[i]];
+                } else {
+                    block = FindPaletteBlock(_blocks[i], _data[i]);
+                }
+                int index = palette.IndexOf(block);
+                if (index < 0) {
+                    index = palette.Count;
+                    palette.Add(block);
+                }
+                indices[i] = index;
             }
 
-            if (CheckAddBlocksEmpty())
-                copy.Remove("Add");
-
+            TagNodeCompound copy = new TagNodeCompound();
+            foreach (KeyValuePair<string, TagNode> node in _tree) copy[node.Key] = node.Value;
+            TagNodeList paletteTag = new TagNodeList(TagType.TAG_COMPOUND);
+            foreach (PaletteBlock block in palette) paletteTag.Add(block.BuildTree());
+            TagNodeLongArray packed = null;
+            if (palette.Count != 1) {
+                int bits = Math.Max(4, BitsFor(palette.Count));
+                packed = new TagNodeLongArray(WritePacked(indices, bits, UsesPaddedPacking));
+            }
+            if (_modern) {
+                TagNodeCompound container = new TagNodeCompound();
+                container["palette"] = paletteTag;
+                if (packed != null) container["data"] = packed;
+                copy["block_states"] = container;
+                copy.Remove("Palette");
+                copy.Remove("BlockStates");
+            } else {
+                copy["Palette"] = paletteTag;
+                if (packed == null) copy.Remove("BlockStates");
+                else copy["BlockStates"] = packed;
+            }
             return copy;
         }
 
-        public bool ValidateTree (TagNode tree)
+        private PaletteBlock FindPaletteBlock(int id, int data)
         {
-            NbtVerifier v = new NbtVerifier(tree, SectionSchema);
-            return v.Verify();
+            for (int i = 0; i < _palette.Length; i++)
+                if (_palette[i].ID == id && _palette[i].Data == data) return _palette[i];
+
+            ItemInfo info = ItemInfo.ItemTable[id];
+            if (info != null && info.StringId != null)
+                return new PaletteBlock(info.StringId, null, id, data);
+            return new PaletteBlock("minecraft:air", null, 0, 0);
         }
 
-        #endregion
-
-        #region ICopyable<AquaticSection> Members
-
-        public AquaticSection Copy ()
+        public bool ValidateTree(TagNode tree)
         {
-            return new AquaticSection().LoadTree(_tree.Copy());
+            TagNodeCompound compound = tree as TagNodeCompound;
+            return compound != null && new NbtVerifier(tree,
+                compound.ContainsKey("block_states") ? ModernSectionSchema : SectionSchema).Verify();
         }
 
-        #endregion
-
-        private void BuildNbtTree ()
+        public AquaticSection Copy()
         {
-            int elements3 = XDIM * YDIM * ZDIM;
+            AquaticSection copy = new AquaticSection();
+            copy._dataVersion = _dataVersion;
+            return copy.LoadTree(_tree.Copy());
+        }
 
-            TagNodeByteArray blocks = new TagNodeByteArray(new byte[elements3]);
-            TagNodeByteArray data = new TagNodeByteArray(new byte[elements3 >> 1]);
-            TagNodeByteArray skyLight = new TagNodeByteArray(new byte[elements3 >> 1]);
-            TagNodeByteArray blockLight = new TagNodeByteArray(new byte[elements3 >> 1]);
-            TagNodeByteArray addBlocks = new TagNodeByteArray(new byte[elements3 >> 1]);
+        private bool UsesPaddedPacking { get { return _modern || _dataVersion >= 2529; } }
 
-            _blocks = new YZXShortDataArray(new short[YDIM, ZDIM, XDIM]);
-            _data = new YZXNibbleArray(XDIM, YDIM, ZDIM, data);
-            _skyLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, skyLight);
-            _blockLight = new YZXNibbleArray(XDIM, YDIM, ZDIM, blockLight);
-            _addBlocks = new YZXNibbleArray(XDIM, YDIM, ZDIM, addBlocks);
+        private static int BitsFor(int count)
+        {
+            int bits = 0;
+            for (int value = count - 1; value > 0; value >>= 1) bits++;
+            return bits;
+        }
 
-            TagNodeCompound tree = new TagNodeCompound();
-            tree.Add("Y", new TagNodeByte(_y));
-            tree.Add("Blocks", blocks);
-            tree.Add("Data", data);
-            tree.Add("SkyLight", skyLight);
-            tree.Add("BlockLight", blockLight);
-            tree.Add("Add", addBlocks);
+        internal static int ReadPacked(long[] values, int index, int bits, bool padded)
+        {
+            if (values == null || values.Length == 0) return 0;
+            ulong mask = (1UL << bits) - 1;
+            if (padded) {
+                int perLong = 64 / bits;
+                int word = index / perLong;
+                return word < values.Length ? (int)(((ulong)values[word] >> ((index % perLong) * bits)) & mask) : 0;
+            }
+            long bitIndex = (long)index * bits;
+            int first = (int)(bitIndex >> 6);
+            int offset = (int)(bitIndex & 63);
+            if (first >= values.Length) return 0;
+            ulong result = (ulong)values[first] >> offset;
+            if (offset + bits > 64 && first + 1 < values.Length)
+                result |= (ulong)values[first + 1] << (64 - offset);
+            return (int)(result & mask);
+        }
 
-            _tree = tree;
+        internal static long[] WritePacked(int[] values, int bits, bool padded)
+        {
+            ulong mask = (1UL << bits) - 1;
+            int length = padded
+                ? (values.Length + (64 / bits) - 1) / (64 / bits)
+                : (values.Length * bits + 63) / 64;
+            long[] result = new long[length];
+            for (int i = 0; i < values.Length; i++) {
+                if (padded) {
+                    int perLong = 64 / bits;
+                    int word = i / perLong;
+                    result[word] = (long)((ulong)result[word] | (((ulong)values[i] & mask) << ((i % perLong) * bits)));
+                } else {
+                    long bitIndex = (long)i * bits;
+                    int word = (int)(bitIndex >> 6);
+                    int offset = (int)(bitIndex & 63);
+                    result[word] = (long)((ulong)result[word] | (((ulong)values[i] & mask) << offset));
+                    if (offset + bits > 64)
+                        result[word + 1] = (long)((ulong)result[word + 1] | (((ulong)values[i] & mask) >> (64 - offset)));
+                }
+            }
+            return result;
+        }
+
+        private void BuildNbtTree()
+        {
+            _blocks = new YZXShortDataArray(new short[Size, Size, Size]);
+            _data = new YZXNibbleArray(Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
+            _skyLightTag = new TagNodeByteArray(new byte[BlockCount / 2]);
+            _blockLightTag = new TagNodeByteArray(new byte[BlockCount / 2]);
+            _skyLight = new YZXNibbleArray(Size, Size, Size, _skyLightTag);
+            _blockLight = new YZXNibbleArray(Size, Size, Size, _blockLightTag);
+            _addBlocks = new YZXNibbleArray(Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
+            _palette = new[] { new PaletteBlock("minecraft:air", null, 0, 0) };
+            _originalPaletteIndices = new int[BlockCount];
+            _originalIds = new short[BlockCount];
+            _originalData = new byte[BlockCount];
+            _tree = new TagNodeCompound();
+            _tree["Y"] = new TagNodeByte(_y);
+            TagNodeList palette = new TagNodeList(TagType.TAG_COMPOUND) { _palette[0].BuildTree() };
+            if (_modern) {
+                TagNodeCompound container = new TagNodeCompound();
+                container["palette"] = palette;
+                _tree["block_states"] = container;
+            } else {
+                _tree["Palette"] = palette;
+            }
+            _tree["SkyLight"] = _skyLightTag;
+            _tree["BlockLight"] = _blockLightTag;
         }
     }
 
-    public struct PaletteBlock
+    public struct PaletteBlock : IEquatable<PaletteBlock>
     {
-        public BlockInfo Block;
-        public string[] Properties;
+        public readonly string Name;
+        public readonly TagNodeCompound Properties;
+        public readonly int ID;
+        public readonly int Data;
 
-        public PaletteBlock(BlockInfo blockInfo, string[] properties) : this() {
-            Block = blockInfo;
+        public PaletteBlock(BlockInfo blockInfo, string[] properties)
+            : this(blockInfo == null ? "minecraft:air" : blockInfo.StrID, null,
+                   blockInfo == null ? 0 : blockInfo.ID, 0) { }
+
+        internal PaletteBlock(string name, TagNodeCompound properties, int id, int data)
+        {
+            Name = String.IsNullOrEmpty(name) ? "minecraft:air" : name;
             Properties = properties;
+            ID = id;
+            Data = data;
         }
+
+        internal static PaletteBlock FromTree(TagNodeCompound tree)
+        {
+            TagNode nameNode;
+            if (tree == null || !tree.TryGetValue("Name", out nameNode)) nameNode = null;
+            TagNodeString nameTag = nameNode as TagNodeString;
+            string name = nameTag == null ? "minecraft:air" : nameTag.Data;
+            TagNode propertiesNode;
+            if (tree == null || !tree.TryGetValue("Properties", out propertiesNode)) propertiesNode = null;
+            TagNodeCompound properties = propertiesNode as TagNodeCompound;
+            ItemInfo info;
+            if (name != null && ItemInfo.StrTable.TryGetValue(name, out info))
+                return new PaletteBlock(name, properties, info.ID, 0);
+            return new PaletteBlock(name, properties, 0, 0);
+        }
+
+        internal TagNodeCompound BuildTree()
+        {
+            TagNodeCompound result = new TagNodeCompound();
+            result["Name"] = new TagNodeString(Name);
+            if (Properties != null && Properties.Count > 0) result["Properties"] = Properties;
+            return result;
+        }
+
+        public bool Equals(PaletteBlock other)
+        {
+            if (Name != other.Name) return false;
+            if (Properties == null || Properties.Count == 0) return other.Properties == null || other.Properties.Count == 0;
+            if (other.Properties == null || Properties.Count != other.Properties.Count) return false;
+            foreach (KeyValuePair<string, TagNode> property in Properties) {
+                TagNodeString left = property.Value as TagNodeString;
+                TagNodeString right = other.Properties[property.Key] as TagNodeString;
+                if (left == null || right == null || left.Data != right.Data) return false;
+            }
+            return true;
+        }
+
+        public override bool Equals(object obj) { return obj is PaletteBlock && Equals((PaletteBlock)obj); }
+        public override int GetHashCode() { return Name.GetHashCode(); }
     }
 }

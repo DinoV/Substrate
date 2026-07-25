@@ -90,6 +90,7 @@
     <Compile Include="Source\Core\OpenWorldEvent.cs" />
     <Compile Include="Source\Core\RegionInterface.cs" />
     <Compile Include="Source\Core\UnboundedBlockInterface.cs" />
+    <Compile Include="Source\Core\YZXShortDataArray.cs" />
     <Compile Include="Source\Data\DataManager.cs" />
     <Compile Include="Source\Data\Map.cs" />
     <Compile Include="Source\Data\MapConverter.cs" />

@@ -255,7 +255,7 @@ namespace Substrate
         private static readonly int[] _opacityTable;
         private static readonly int[] _luminanceTable;
 
-        private static readonly Dictionary<string, BlockInfo> _blockNameTable;
+        private static readonly Dictionary<string, BlockInfo> _blockNameTable = new Dictionary<string, BlockInfo>();
 
         private class CacheTableArray<T> : ICacheTable<T>
         {
