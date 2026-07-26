@@ -72,6 +72,16 @@ namespace Substrate
             }
         }
 
+        /// <summary>Gets the lowest world Y coordinate represented by this chunk.</summary>
+        public int MinimumY
+        {
+            get
+            {
+                AquaticChunk aquatic = GetChunk() as AquaticChunk;
+                return aquatic == null ? 0 : aquatic.MinimumY;
+            }
+        }
+
         /// <summary>
         /// Gets the collection of all blocks and their data stored in the chunk.
         /// </summary>

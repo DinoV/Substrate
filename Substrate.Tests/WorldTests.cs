@@ -19,6 +19,10 @@ namespace Substrate.Tests
             Assert.AreEqual(240, world.Level.Spawn.Z);
 
             AnvilWorld anvil = world as AnvilWorld;
+            var block = anvil.GetBlockManager().GetBlock(79, 62, 249);
+            Assert.AreEqual("minecraft:sand", block.Info.StrID);
+            Assert.AreSame(BlockInfo.Sand, block.Info);
+            Assert.AreEqual(12, block.Info.ID);
             Assert.IsNotNull(anvil);
             Assert.IsTrue(anvil.GetRegionManager().GetRegionPath().EndsWith(
                 Path.Combine("dimensions", "minecraft", "overworld", "region")));

@@ -192,6 +192,16 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void ModernRegistryPreservesLegacyBlockIds()
+        {
+            foreach (KeyValuePair<string, ItemInfo> item in ItemInfo.StrTable) {
+                BlockInfo block;
+                if (item.Value.ID < 256 && BlockInfo.BlockNameTable.TryGetValue(item.Key, out block))
+                    Assert.AreEqual(item.Value.ID, block.ID, item.Key);
+            }
+        }
+
+        [TestMethod]
         public void AquaticPaletteUsesRegisteredBlockInfo()
         {
             int[] states = new int[4096];

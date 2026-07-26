@@ -577,9 +577,15 @@ namespace Substrate
                         if (!_blockNameTable.TryGetValue(stringId, out info)) {
                             ItemInfo legacyItem;
                             if (ItemInfo.StrTable.TryGetValue(stringId, out legacyItem)
-                                    && legacyItem.ID >= 0 && legacyItem.ID < _blockTable.Length
-                                    && _blockTable[legacyItem.ID] != null) {
+                                    && legacyItem.ID >= 0 && legacyItem.ID < 256) {
                                 info = _blockTable[legacyItem.ID];
+                                if (info == null) {
+                                    int separator = stringId.IndexOf(':');
+                                    string path = separator < 0 ? stringId : stringId.Substring(separator + 1);
+                                    info = new BlockInfo(legacyItem.ID, DisplayName(path), stringId);
+                                }
+                                if (info._strId == null)
+                                    info._strId = stringId;
                                 _blockNameTable[stringId] = info;
                             }
                             else {
