@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using Substrate.Core;
+using Substrate.Nbt;
 
 namespace Substrate
 {
@@ -80,6 +81,13 @@ namespace Substrate
                 AquaticChunk aquatic = GetChunk() as AquaticChunk;
                 return aquatic == null ? 0 : aquatic.MinimumY;
             }
+        }
+
+        /// <summary>Gets a copy of the modern block-state properties at local X/Z and world Y coordinates.</summary>
+        public TagNodeCompound GetBlockProperties (int x, int y, int z)
+        {
+            AquaticChunk aquatic = GetChunk() as AquaticChunk;
+            return aquatic == null ? null : aquatic.GetBlockProperties(x, y, z);
         }
 
         /// <summary>

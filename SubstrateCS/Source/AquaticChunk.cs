@@ -148,6 +148,14 @@ namespace Substrate
             return section.GetBlockName(x, y & 15, z);
         }
 
+        /// <summary>Gets a copy of the block-state properties at a world Y coordinate.</summary>
+        public TagNodeCompound GetBlockProperties(int x, int y, int z)
+        {
+            AquaticSection section = GetSectionForWorldY(y);
+            TagNodeCompound properties = section.GetBlockProperties(x, y & 15, z);
+            return properties == null ? null : properties.Copy() as TagNodeCompound;
+        }
+
         /// <summary>Sets a namespaced block state using a world Y coordinate.</summary>
         public void SetBlockState(int x, int y, int z, string name, TagNodeCompound properties)
         {

@@ -1,5 +1,6 @@
 using System;
 using Substrate.Core;
+using Substrate.Nbt;
 
 namespace Substrate
 {
@@ -300,6 +301,29 @@ namespace Substrate
 
             BlockInfo info = cache.Blocks.GetInfo(x & chunkXMask, LocalY(y), z & chunkZMask);
             return info == null ? null : info.StrID;
+        }
+
+        /// <summary>Gets a copy of the modern block-state properties at global coordinates.</summary>
+        public TagNodeCompound GetBlockProperties (int x, int y, int z)
+        {
+            cache = GetChunk(x, y, z);
+            if (cache == null || !Check(x, y, z))
+                return null;
+
+            return cache.GetBlockProperties(x & chunkXMask, y, z & chunkZMask);
+        }
+
+        /// <summary>Gets a modern string block-state property at global coordinates.</summary>
+        public string GetBlockProperty (int x, int y, int z, string property)
+        {
+            TagNodeCompound properties = GetBlockProperties(x, y, z);
+            TagNode value;
+            TagNodeString stringValue;
+            return properties != null
+                && properties.TryGetValue(property, out value)
+                && (stringValue = value as TagNodeString) != null
+                ? stringValue.Data
+                : null;
         }
 
         /// <inheritdoc/>
