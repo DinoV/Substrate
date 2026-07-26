@@ -12,7 +12,7 @@ namespace Substrate.TileEntities {
             new SchemaNodeScaler("Base", TagType.TAG_INT),
             new SchemaNodeList(
                 "Patterns",
-                TagType.TAG_LIST,
+                TagType.TAG_COMPOUND,
                 new SchemaNodeCompound() {
                     new SchemaNodeScaler("Color", TagType.TAG_INT),
                     new SchemaNodeScaler("Pattern", TagType.TAG_STRING)
