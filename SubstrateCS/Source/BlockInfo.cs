@@ -180,6 +180,8 @@ namespace Substrate
         public const int DROPPER = 158;
         public const int STAINED_CLAY = 159;
         public const int STAINED_GLASS_PANE = 160;
+        public const int ACACIA_WOOD_STAIRS = 163;
+        public const int DARK_OAK_WOOD_STAIRS = 164;
         public const int HAY_BLOCK = 170;
         public const int CARPET = 171;
         public const int HARDENED_CLAY = 172;
