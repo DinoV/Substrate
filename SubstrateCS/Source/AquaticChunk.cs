@@ -373,10 +373,12 @@ namespace Substrate
                         _biomes[x, z] = BiomeType.Default;
             }
 
-            level.TryGetValue(_modern ? "entities" : "Entities", out optionalNode);
+            string entitiesKey = _modern ? "entities" : "Entities";
+            string tileEntitiesKey = _modern ? "block_entities" : "TileEntities";
+            level.TryGetValue(entitiesKey, out optionalNode);
             _entities = optionalNode as TagNodeList;
             if (_entities == null) _entities = new TagNodeList(TagType.TAG_COMPOUND);
-            level.TryGetValue(_modern ? "block_entities" : "TileEntities", out optionalNode);
+            level.TryGetValue(tileEntitiesKey, out optionalNode);
             _tileEntities = optionalNode as TagNodeList;
             if (_tileEntities == null) _tileEntities = new TagNodeList(TagType.TAG_COMPOUND);
 
@@ -386,25 +388,21 @@ namespace Substrate
                 _tileTicks = new TagNodeList(TagType.TAG_COMPOUND);
 
             // List-type patch up
-            if (_entities.Count == 0) {
-                if (!_modern) {
-                    level["Entities"] = new TagNodeList(TagType.TAG_COMPOUND);
-                    _entities = level["Entities"] as TagNodeList;
-                }
+            if (_entities.Count == 0 && _entities.ValueType != TagType.TAG_COMPOUND) {
+                level[entitiesKey] = new TagNodeList(TagType.TAG_COMPOUND);
+                _entities = level[entitiesKey] as TagNodeList;
             }
 
-            if (_tileEntities.Count == 0) {
-                if (!_modern) {
-                    level["TileEntities"] = new TagNodeList(TagType.TAG_COMPOUND);
-                    _tileEntities = level["TileEntities"] as TagNodeList;
-                }
+            if (_tileEntities.Count == 0 && _tileEntities.ValueType != TagType.TAG_COMPOUND) {
+                level[tileEntitiesKey] = new TagNodeList(TagType.TAG_COMPOUND);
+                _tileEntities = level[tileEntitiesKey] as TagNodeList;
             }
 
-            if (_tileTicks.Count == 0) {
-                if (!_modern) {
-                    level["TileTicks"] = new TagNodeList(TagType.TAG_COMPOUND);
-                    _tileTicks = level["TileTicks"] as TagNodeList;
-                }
+            if (_tileTicks.Count == 0 && _tileTicks.ValueType != TagType.TAG_COMPOUND) {
+                if (!_modern) level["TileTicks"] = new TagNodeList(TagType.TAG_COMPOUND);
+                _tileTicks = !_modern
+                    ? level["TileTicks"] as TagNodeList
+                    : new TagNodeList(TagType.TAG_COMPOUND);
             }
 
             _cx = level["xPos"].ToTagInt();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Substrate;
+using Substrate.TileEntities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Substrate.Tests
 {
@@ -29,6 +30,10 @@ namespace Substrate.Tests
             Assert.AreEqual(AcquaticBlocks.LeafLitter, block.Info.StrID);
             Assert.AreEqual("2", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, BlockProperties.SegmentAmount));
             Assert.AreEqual("north", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, BlockProperties.Facing));
+            anvil.GetBlockManager().SetID(79, 63, 249, BlockType.SIGN_POST);
+            Assert.IsInstanceOfType(
+                anvil.GetBlockManager().GetTileEntity(79, 63, 249),
+                typeof(TileEntitySign));
             Assert.IsNotNull(anvil);
             Assert.IsTrue(anvil.GetRegionManager().GetRegionPath().EndsWith(
                 Path.Combine("dimensions", "minecraft", "overworld", "region")));
