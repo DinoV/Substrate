@@ -44,9 +44,8 @@ namespace Substrate
         private TagNodeByteArray _blockLightTag;
         private TagNodeByteArray _skyLightTag;
         private PaletteBlock[] _palette;
-        private int[] _originalPaletteIndices;
-        private short[] _originalIds;
-        private byte[] _originalData;
+        private byte[] _originalPaletteIndices8;
+        private ushort[] _originalPaletteIndices16;
         private int _dataVersion;
         private bool _modern;
 
@@ -86,17 +85,25 @@ namespace Substrate
         public YZXNibbleArray Data { get { return _data; } }
         public YZXNibbleArray BlockLight { get { return _blockLight; } }
         public YZXNibbleArray SkyLight { get { return _skyLight; } }
-        public YZXNibbleArray AddBlocks { get { return _addBlocks; } }
+        public YZXNibbleArray AddBlocks
+        {
+            get
+            {
+                if (_addBlocks == null)
+                    _addBlocks = new YZXNibbleArray(
+                        Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
+                return _addBlocks;
+            }
+        }
         public PaletteBlock[] Palette { get { return _palette; } }
 
         public bool CheckEmpty()
         {
             for (int i = 0; i < _blocks.Length; i++) {
                 if (_blocks[i] != 0) return false;
-                if (_originalPaletteIndices != null &&
-                    _blocks[i] == _originalIds[i] &&
-                    _data[i] == _originalData[i] &&
-                    _palette[_originalPaletteIndices[i]].Name != "minecraft:air") return false;
+                if (HasOriginalPaletteIndices &&
+                    IsOriginalState(i) &&
+                    _palette[GetOriginalPaletteIndex(i)].Name != "minecraft:air") return false;
             }
             return true;
         }
@@ -133,18 +140,14 @@ namespace Substrate
             }
             _blocks[index] = id;
             _data[index] = 0;
-            _originalPaletteIndices[index] = paletteIndex;
-            _originalIds[index] = (short)id;
-            _originalData[index] = 0;
+            SetOriginalPaletteIndex(index, paletteIndex);
         }
 
         private PaletteBlock GetPaletteBlock(int x, int y, int z)
         {
             int index = _blocks.GetIndex(x, y, z);
-            if (_originalPaletteIndices != null &&
-                _blocks[index] == _originalIds[index] &&
-                _data[index] == _originalData[index])
-                return _palette[_originalPaletteIndices[index]];
+            if (HasOriginalPaletteIndices && IsOriginalState(index))
+                return _palette[GetOriginalPaletteIndex(index)];
             return FindPaletteBlock(_blocks[index], _data[index]);
         }
 
@@ -179,9 +182,10 @@ namespace Substrate
             TagNodeByteArray metadataTag = new TagNodeByteArray(new byte[BlockCount / 2]);
             _blocks = new YZXShortDataArray(ids);
             _data = new YZXNibbleArray(Size, Size, Size, metadataTag);
-            _originalPaletteIndices = new int[BlockCount];
-            _originalIds = new short[BlockCount];
-            _originalData = new byte[BlockCount];
+            if (_palette.Length <= byte.MaxValue + 1)
+                _originalPaletteIndices8 = new byte[BlockCount];
+            else
+                _originalPaletteIndices16 = new ushort[BlockCount];
 
             TagNode statesNode;
             if (_modern) blockStatesContainer.TryGetValue("data", out statesNode);
@@ -193,14 +197,11 @@ namespace Substrate
                 if (paletteIndex < 0 || paletteIndex >= _palette.Length) paletteIndex = 0;
                 _blocks[i] = _palette[paletteIndex].ID;
                 _data[i] = _palette[paletteIndex].Data;
-                _originalPaletteIndices[i] = paletteIndex;
-                _originalIds[i] = (short)_blocks[i];
-                _originalData[i] = (byte)_data[i];
+                SetOriginalPaletteIndex(i, paletteIndex);
             }
 
             _skyLight = NibbleArray(section, "SkyLight", out _skyLightTag);
             _blockLight = NibbleArray(section, "BlockLight", out _blockLightTag);
-            _addBlocks = new YZXNibbleArray(Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
             return this;
         }
 
@@ -227,10 +228,8 @@ namespace Substrate
             int[] indices = new int[BlockCount];
             for (int i = 0; i < BlockCount; i++) {
                 PaletteBlock block;
-                if (_originalPaletteIndices != null &&
-                    _blocks[i] == _originalIds[i] &&
-                    _data[i] == _originalData[i]) {
-                    block = _palette[_originalPaletteIndices[i]];
+                if (HasOriginalPaletteIndices && IsOriginalState(i)) {
+                    block = _palette[GetOriginalPaletteIndex(i)];
                 } else {
                     block = FindPaletteBlock(_blocks[i], _data[i]);
                 }
@@ -278,6 +277,51 @@ namespace Substrate
             if (itemInfo != null && itemInfo.StringId != null)
                 return new PaletteBlock(itemInfo.StringId, null, id, data);
             return new PaletteBlock("minecraft:air", null, 0, 0);
+        }
+
+        private bool HasOriginalPaletteIndices
+        {
+            get { return _originalPaletteIndices8 != null || _originalPaletteIndices16 != null; }
+        }
+
+        private int GetOriginalPaletteIndex(int index)
+        {
+            return _originalPaletteIndices16 != null
+                ? _originalPaletteIndices16[index]
+                : _originalPaletteIndices8[index];
+        }
+
+        private void SetOriginalPaletteIndex(int index, int paletteIndex)
+        {
+            if (paletteIndex < 0 || paletteIndex >= BlockCount)
+                throw new ArgumentOutOfRangeException("paletteIndex");
+
+            if (_originalPaletteIndices16 != null) {
+                _originalPaletteIndices16[index] = (ushort)paletteIndex;
+                return;
+            }
+
+            if (_originalPaletteIndices8 == null)
+                _originalPaletteIndices8 = new byte[BlockCount];
+
+            if (paletteIndex <= byte.MaxValue) {
+                _originalPaletteIndices8[index] = (byte)paletteIndex;
+                return;
+            }
+
+            _originalPaletteIndices16 = new ushort[BlockCount];
+            for (int i = 0; i < BlockCount; i++)
+                _originalPaletteIndices16[i] = _originalPaletteIndices8[i];
+            _originalPaletteIndices8 = null;
+            _originalPaletteIndices16[index] = (ushort)paletteIndex;
+        }
+
+        private bool IsOriginalState(int index)
+        {
+            int paletteIndex = GetOriginalPaletteIndex(index);
+            if (paletteIndex < 0 || paletteIndex >= _palette.Length) return false;
+            PaletteBlock original = _palette[paletteIndex];
+            return _blocks[index] == original.ID && _data[index] == original.Data;
         }
 
         public bool ValidateTree(TagNode tree)
@@ -354,11 +398,7 @@ namespace Substrate
             _blockLightTag = new TagNodeByteArray(new byte[BlockCount / 2]);
             _skyLight = new YZXNibbleArray(Size, Size, Size, _skyLightTag);
             _blockLight = new YZXNibbleArray(Size, Size, Size, _blockLightTag);
-            _addBlocks = new YZXNibbleArray(Size, Size, Size, new TagNodeByteArray(new byte[BlockCount / 2]));
             _palette = new[] { new PaletteBlock("minecraft:air", null, 0, 0) };
-            _originalPaletteIndices = new int[BlockCount];
-            _originalIds = new short[BlockCount];
-            _originalData = new byte[BlockCount];
             _tree = new TagNodeCompound();
             _tree["Y"] = new TagNodeByte(_y);
             TagNodeList palette = new TagNodeList(TagType.TAG_COMPOUND) { _palette[0].BuildTree() };

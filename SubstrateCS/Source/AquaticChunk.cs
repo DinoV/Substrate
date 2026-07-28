@@ -329,7 +329,7 @@ namespace Substrate
                 _sections[sectionIndex] = aquaticSection;
             }
 
-            FusedDataArray3[] blocksBA = new FusedDataArray3[_sections.Length];
+            IDataArray3[] blocksBA = new IDataArray3[_sections.Length];
             YZXNibbleArray[] dataBA = new YZXNibbleArray[_sections.Length];
             YZXNibbleArray[] skyLightBA = new YZXNibbleArray[_sections.Length];
             YZXNibbleArray[] blockLightBA = new YZXNibbleArray[_sections.Length];
@@ -338,7 +338,7 @@ namespace Substrate
                 if (_sections[i] == null)
                     _sections[i] = new AquaticSection(i + _minimumSectionY, _dataVersion, _modern);
 
-                blocksBA[i] = new FusedDataArray3(_sections[i].AddBlocks, _sections[i].Blocks);
+                blocksBA[i] = _sections[i].Blocks;
                 dataBA[i] = _sections[i].Data;
                 skyLightBA[i] = _sections[i].SkyLight;
                 blockLightBA[i] = _sections[i].BlockLight;
