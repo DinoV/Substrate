@@ -241,7 +241,10 @@ namespace Substrate.Nbt
                     }
                 }
 
-                pass = node.Verify(verifier, value) && pass;
+                if (!node.Verify(verifier, value))
+                {
+                    pass = false;
+                }
             }
 
             foreach (KeyValuePair<string, TagNode> item in _scratch) {
