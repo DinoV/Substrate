@@ -678,7 +678,7 @@ namespace Substrate.Core
             }
         }
 
-
+        /*
         private IBoundedLitBlockCollection LocalChunk (int lx, int ly, int lz)
         {
             if (ly < 0 || ly >= _ydim) {
@@ -713,6 +713,7 @@ namespace Substrate.Core
                 return _blockset;
             }
         }
+        */
 
         private int NeighborLight (IBoundedLitBlockCollection[,] chunkMap, int x, int y, int z)
         {
@@ -773,7 +774,7 @@ namespace Substrate.Core
 
             return (info.Opacity > 0) ? light : light - 1;
         }
-
+        /*
         private int NeighborHeight (int x, int z)
         {
             IBoundedLitBlockCollection src = LocalChunk(x, 0, z);
@@ -786,7 +787,7 @@ namespace Substrate.Core
 
             return src.GetHeight(x, z);
         }
-
+        */
 
         private void TestBlockLight (IBoundedLitBlockCollection chunk, int x1, int y1, int z1, int x2, int y2, int z2)
         {

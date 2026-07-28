@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using Substrate.Core;
+using Substrate.Nbt;
 
 namespace Substrate
 {
@@ -140,7 +141,7 @@ namespace Substrate
                 return null;
             }
 
-            return cache.Blocks.GetBlock(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetBlock(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <summary>
@@ -160,7 +161,7 @@ namespace Substrate
                 return new AlphaBlockRef();
             }
 
-            return cache.Blocks.GetBlockRef(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetBlockRef(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <summary>
@@ -177,7 +178,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x & chunkXMask, y & chunkYMask, z & chunkZMask, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <summary>
@@ -211,9 +212,16 @@ namespace Substrate
         /// </summary>
         protected virtual bool Check (int x, int y, int z)
         {
+            int minimumY = cache == null ? MIN_Y : cache.MinimumY;
+            int maximumY = cache == null ? MAX_Y : minimumY + cache.Blocks.YDim;
             return (x >= MIN_X) && (x < MAX_X) &&
-                (y >= MIN_Y) && (y < MAX_Y) &&
+                (y >= minimumY) && (y < maximumY) &&
                 (z >= MIN_Z) && (z < MAX_Z);
+        }
+
+        private int LocalY (int y)
+        {
+            return y - cache.MinimumY;
         }
 
         #region IBlockContainer Members
@@ -236,7 +244,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x, y, z, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <inheritdoc/>
@@ -247,7 +255,7 @@ namespace Substrate
                 return null;
             }
 
-            return cache.Blocks.GetInfo(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetInfo(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -258,7 +266,7 @@ namespace Substrate
                 return 0;
             }
 
-            return cache.Blocks.GetID(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetID(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -277,11 +285,53 @@ namespace Substrate
             cache.Blocks.AutoFluid = _autoFluid;
             cache.Blocks.AutoTileTick = _autoTileTick;
 
-            cache.Blocks.SetID(x & chunkXMask, y & chunkYMask, z & chunkZMask, id);
+            cache.Blocks.SetID(x & chunkXMask, LocalY(y), z & chunkZMask, id);
 
             cache.Blocks.AutoFluid = autofluid;
             cache.Blocks.AutoLight = autolight;
             cache.Blocks.AutoTileTick = autoTileTick;
+        }
+
+        /// <inheritdoc/>
+        public string GetStringID(int x, int y, int z) {
+            cache = GetChunk(x, y, z);
+            if (cache == null) {
+                return null;
+            }
+
+            BlockInfo info = cache.Blocks.GetInfo(x & chunkXMask, LocalY(y), z & chunkZMask);
+            return info == null ? null : info.StrID;
+        }
+
+        /// <summary>Gets a copy of the modern block-state properties at global coordinates.</summary>
+        public TagNodeCompound GetBlockProperties (int x, int y, int z)
+        {
+            cache = GetChunk(x, y, z);
+            if (cache == null || !Check(x, y, z))
+                return null;
+
+            return cache.GetBlockProperties(x & chunkXMask, y, z & chunkZMask);
+        }
+
+        /// <summary>Gets a modern string block-state property at global coordinates.</summary>
+        public string GetBlockProperty (int x, int y, int z, string property)
+        {
+            TagNodeCompound properties = GetBlockProperties(x, y, z);
+            TagNode value;
+            TagNodeString stringValue;
+            return properties != null
+                && properties.TryGetValue(property, out value)
+                && (stringValue = value as TagNodeString) != null
+                ? stringValue.Data
+                : null;
+        }
+
+        /// <inheritdoc/>
+        public void SetStringID(int x, int y, int z, string id) {
+            BlockInfo info;
+            if (!BlockInfo.BlockNameTable.TryGetValue(id, out info))
+                throw new ArgumentException("Unknown block identifier: " + id, "id");
+            SetID(x, y, z, info.ID);
         }
 
         #endregion
@@ -307,7 +357,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x, y, z, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <inheritdoc/>
@@ -318,7 +368,7 @@ namespace Substrate
                 return 0;
             }
 
-            return cache.Blocks.GetData(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetData(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -329,7 +379,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetData(x & chunkXMask, y & chunkYMask, z & chunkZMask, data);
+            cache.Blocks.SetData(x & chunkXMask, LocalY(y), z & chunkZMask, data);
         }
 
         #endregion
@@ -355,7 +405,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x, y, z, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <inheritdoc/>
@@ -366,7 +416,7 @@ namespace Substrate
                 return 0;
             }
 
-            return cache.Blocks.GetBlockLight(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetBlockLight(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -377,7 +427,7 @@ namespace Substrate
                 return 0;
             }
 
-            return cache.Blocks.GetSkyLight(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetSkyLight(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -388,7 +438,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlockLight(x & chunkXMask, y & chunkYMask, z & chunkZMask, light);
+            cache.Blocks.SetBlockLight(x & chunkXMask, LocalY(y), z & chunkZMask, light);
         }
 
         /// <inheritdoc/>
@@ -399,7 +449,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetSkyLight(x & chunkXMask, y & chunkYMask, z & chunkZMask, light);
+            cache.Blocks.SetSkyLight(x & chunkXMask, LocalY(y), z & chunkZMask, light);
         }
 
         /// <inheritdoc/>
@@ -432,7 +482,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.UpdateBlockLight(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.UpdateBlockLight(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -443,7 +493,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.UpdateBlockLight(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.UpdateBlockLight(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         #endregion
@@ -469,7 +519,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x, y, z, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <inheritdoc/>
@@ -480,7 +530,7 @@ namespace Substrate
                 return null;
             }
 
-            return cache.Blocks.GetTileEntity(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetTileEntity(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -491,7 +541,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetTileEntity(x & chunkXMask, y & chunkYMask, z & chunkZMask, te);
+            cache.Blocks.SetTileEntity(x & chunkXMask, LocalY(y), z & chunkZMask, te);
         }
 
         /// <inheritdoc/>
@@ -502,7 +552,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.CreateTileEntity(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.CreateTileEntity(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -513,7 +563,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.ClearTileEntity(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.ClearTileEntity(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         #endregion
@@ -539,7 +589,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetBlock(x, y, z, block);
+            cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
         /// <inheritdoc/>
@@ -550,7 +600,7 @@ namespace Substrate
                 return 0;
             }
 
-            return cache.Blocks.GetTileTickValue(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetTileTickValue(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -561,7 +611,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetTileTickValue(x & chunkXMask, y & chunkYMask, z & chunkZMask, tickValue);
+            cache.Blocks.SetTileTickValue(x & chunkXMask, LocalY(y), z & chunkZMask, tickValue);
         }
 
         /// <inheritdoc/>
@@ -572,7 +622,7 @@ namespace Substrate
                 return null;
             }
 
-            return cache.Blocks.GetTileTick(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            return cache.Blocks.GetTileTick(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -583,7 +633,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.SetTileTick(x & chunkXMask, y & chunkYMask, z & chunkZMask, te);
+            cache.Blocks.SetTileTick(x & chunkXMask, LocalY(y), z & chunkZMask, te);
         }
 
         /// <inheritdoc/>
@@ -594,7 +644,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.CreateTileTick(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.CreateTileTick(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         /// <inheritdoc/>
@@ -605,7 +655,7 @@ namespace Substrate
                 return;
             }
 
-            cache.Blocks.ClearTileTick(x & chunkXMask, y & chunkYMask, z & chunkZMask);
+            cache.Blocks.ClearTileTick(x & chunkXMask, LocalY(y), z & chunkZMask);
         }
 
         #endregion
