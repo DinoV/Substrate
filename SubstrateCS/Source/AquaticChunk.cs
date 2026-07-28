@@ -354,7 +354,8 @@ namespace Substrate
             TagNodeIntArray legacyHeight = optionalNode as TagNodeIntArray;
             if (legacyHeight == null) {
                 level.TryGetValue("Heightmaps", out optionalNode);
-                legacyHeight = new TagNodeIntArray(ReadHeightMap(optionalNode as TagNodeCompound));
+                legacyHeight = new TagNodeIntArray(ReadHeightMap(
+                    optionalNode as TagNodeCompound, _minimumSectionY * 16));
             }
             _heightMap = new ZXIntArray(XDIM, ZDIM, legacyHeight);
 
@@ -467,20 +468,29 @@ namespace Substrate
             return v.Verify();
         }
 
-        private static int[] ReadHeightMap(TagNodeCompound heightmaps)
+        private static int[] ReadHeightMap(TagNodeCompound heightmaps, int minimumY)
         {
             int[] result = new int[256];
             if (heightmaps == null) return result;
             TagNode node;
-            heightmaps.TryGetValue("WORLD_SURFACE", out node);
+            heightmaps.TryGetValue("MOTION_BLOCKING_NO_LEAVES", out node);
             TagNodeLongArray source = node as TagNodeLongArray;
             if (source == null) {
                 heightmaps.TryGetValue("MOTION_BLOCKING", out node);
                 source = node as TagNodeLongArray;
             }
+            if (source == null) {
+                heightmaps.TryGetValue("WORLD_SURFACE", out node);
+                source = node as TagNodeLongArray;
+            }
             if (source == null) return result;
+
+            const int bits = 9;
+            int valuesPerLong = 64 / bits;
+            int paddedLength = (result.Length + valuesPerLong - 1) / valuesPerLong;
+            bool padded = source.Data.Length >= paddedLength;
             for (int i = 0; i < result.Length; i++)
-                result[i] = AquaticSection.ReadPacked(source.Data, i, 9, false);
+                result[i] = AquaticSection.ReadPacked(source.Data, i, bits, padded) + minimumY;
             return result;
         }
 
