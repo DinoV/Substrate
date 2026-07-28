@@ -24,9 +24,9 @@ namespace Substrate.Tests
             Assert.AreSame(BlockInfo.Sand, block.Info);
             Assert.AreEqual(12, block.Info.ID);
             block = anvil.GetBlockManager().GetBlock(79, 63, 249);
-            Assert.AreEqual("minecraft:leaf_litter", block.Info.StrID);
-            Assert.AreEqual("2", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, "segment_amount"));
-            Assert.AreEqual("north", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, "facing"));
+            Assert.AreEqual(AcquaticBlocks.LeafLitter, block.Info.StrID);
+            Assert.AreEqual("2", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, BlockProperties.SegmentAmount));
+            Assert.AreEqual("north", anvil.GetBlockManager().GetBlockProperty(79, 63, 249, BlockProperties.Facing));
             Assert.IsNotNull(anvil);
             Assert.IsTrue(anvil.GetRegionManager().GetRegionPath().EndsWith(
                 Path.Combine("dimensions", "minecraft", "overworld", "region")));

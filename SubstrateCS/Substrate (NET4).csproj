@@ -73,6 +73,7 @@
     <Compile Include="Source\AnvilBiomeCollection.cs" />
     <Compile Include="Source\AquaticSection.cs" />
     <Compile Include="Source\AquaticChunk.cs" />
+    <Compile Include="Source\AcquaticBlocks.cs" />
     <Compile Include="Source\AnvilChunk.cs" />
     <Compile Include="Source\AnvilRegion.cs" />
     <Compile Include="Source\AnvilRegionManager.cs" />
@@ -177,6 +178,7 @@
     <Compile Include="Source\Core\PlayerFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\BlockInfo.cs" />
+    <Compile Include="Source\BlockProperties.cs" />
     <Compile Include="Source\Core\BlockInterface.cs" />
     <Compile Include="Source\Core\BlockKey.cs" />
     <Compile Include="Source\BlockManager.cs" />

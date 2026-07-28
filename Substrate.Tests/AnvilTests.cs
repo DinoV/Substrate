@@ -202,6 +202,20 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void Minecraft262ConstantsCoverBlocksAndProperties()
+        {
+            Assert.AreEqual(1196, typeof(AcquaticBlocks).GetFields().Length);
+            Assert.AreEqual("minecraft:air", AcquaticBlocks.Air);
+            Assert.AreEqual("minecraft:leaf_litter", AcquaticBlocks.LeafLitter);
+            Assert.AreEqual("minecraft:potent_sulfur", AcquaticBlocks.PotentSulfur);
+
+            Assert.AreEqual(93, typeof(BlockProperties).GetFields().Length);
+            Assert.AreEqual("facing", BlockProperties.Facing);
+            Assert.AreEqual("segment_amount", BlockProperties.SegmentAmount);
+            Assert.AreEqual("waterlogged", BlockProperties.Waterlogged);
+        }
+
+        [TestMethod]
         public void AquaticPaletteUsesRegisteredBlockInfo()
         {
             int[] states = new int[4096];
