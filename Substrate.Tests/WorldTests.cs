@@ -11,6 +11,15 @@ namespace Substrate.Tests
     public class WorldTests
     {
         [TestMethod]
+        public void OpenTest_262_missing_heightmaps()
+        {
+            NbtWorld world = NbtWorld.Open(@"..\..\Data\26_2-missing-heightmaps\");
+            var bm = world.GetBlockManager() as AnvilBlockManager;
+            var height = bm.GetHeight(2431, 1911);
+            Assert.AreEqual(111, height);
+        }
+
+        [TestMethod]
         public void OpenTest_262_creative()
         {
             NbtWorld world = NbtWorld.Open(@"..\..\Data\26_2-creative\");

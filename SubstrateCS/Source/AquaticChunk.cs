@@ -350,12 +350,15 @@ namespace Substrate
             _blockLight = new CompositeDataArray3(blockLightBA);
             
             TagNode optionalNode;
+            bool rebuildHeightMap = false;
             level.TryGetValue("HeightMap", out optionalNode);
             TagNodeIntArray legacyHeight = optionalNode as TagNodeIntArray;
             if (legacyHeight == null) {
                 level.TryGetValue("Heightmaps", out optionalNode);
-                legacyHeight = new TagNodeIntArray(ReadHeightMap(
-                    optionalNode as TagNodeCompound, _minimumSectionY * 16));
+                int[] modernHeight = ReadHeightMap(
+                    optionalNode as TagNodeCompound, _minimumSectionY * 16);
+                rebuildHeightMap = modernHeight == null;
+                legacyHeight = new TagNodeIntArray(modernHeight ?? new int[XDIM * ZDIM]);
             }
             _heightMap = new ZXIntArray(XDIM, ZDIM, legacyHeight);
 
@@ -409,6 +412,8 @@ namespace Substrate
             _cz = level["zPos"].ToTagInt();
 
             _blockManager = new AlphaBlockCollection(_blocks, _data, _blockLight, _skyLight, _heightMap, _tileEntities, _tileTicks);
+            if (rebuildHeightMap)
+                RebuildHeightMap();
             _entityManager = new EntityCollection(_entities);
             _biomeManager = new AquaticBiomeCollection(_biomes);
 
@@ -468,8 +473,7 @@ namespace Substrate
 
         private static int[] ReadHeightMap(TagNodeCompound heightmaps, int minimumY)
         {
-            int[] result = new int[256];
-            if (heightmaps == null) return result;
+            if (heightmaps == null) return null;
             TagNode node;
             heightmaps.TryGetValue("MOTION_BLOCKING_NO_LEAVES", out node);
             TagNodeLongArray source = node as TagNodeLongArray;
@@ -481,8 +485,9 @@ namespace Substrate
                 heightmaps.TryGetValue("WORLD_SURFACE", out node);
                 source = node as TagNodeLongArray;
             }
-            if (source == null) return result;
+            if (source == null) return null;
 
+            int[] result = new int[XDIM * ZDIM];
             const int bits = 9;
             int valuesPerLong = 64 / bits;
             int paddedLength = (result.Length + valuesPerLong - 1) / valuesPerLong;
@@ -490,6 +495,22 @@ namespace Substrate
             for (int i = 0; i < result.Length; i++)
                 result[i] = AquaticSection.ReadPacked(source.Data, i, bits, padded) + minimumY;
             return result;
+        }
+
+        private void RebuildHeightMap()
+        {
+            int minimumY = _minimumSectionY * 16;
+            for (int x = 0; x < XDIM; x++) {
+                for (int z = 0; z < ZDIM; z++) {
+                    for (int y = _blocks.YDim - 1; y >= 0; y--) {
+                        BlockInfo info = _blockManager.GetInfo(x, y, z);
+                        if (info.ObscuresLight) {
+                            _heightMap[x, z] = minimumY + y + 1;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         #endregion
