@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Substrate;
+using Substrate.Nbt;
 using Substrate.TileEntities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Security.Cryptography;
@@ -131,6 +132,52 @@ namespace Substrate.Tests
                 Assert.AreEqual("true", blocks.GetBlockProperty(2422, y, 1912, BlockProperties.West));
                 Assert.AreEqual("true", blocks.GetBlockProperty(2426, y, 1912, BlockProperties.North));
                 Assert.AreEqual("true", blocks.GetBlockProperty(2426, y, 1912, BlockProperties.Down));
+                blocks = null;
+                world = null;
+            }
+            finally {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Directory.Delete(copy, true);
+            }
+        }
+
+        [TestMethod]
+        public void SignTextSurvivesModernWorldSave()
+        {
+            string source = Path.GetFullPath(@"..\..\Data\26_2-missing-heightmaps\");
+            string copy = Path.Combine(Path.GetTempPath(), "Substrate-" + Guid.NewGuid().ToString("N"));
+            CopyDirectory(source, copy);
+            try {
+                NbtWorld world = NbtWorld.Open(copy);
+                AnvilBlockManager blocks = world.GetBlockManager() as AnvilBlockManager;
+                const int x = 2430;
+                const int y = 112;
+                const int z = 1911;
+                AlphaBlock block = new AlphaBlock(BlockType.SIGN_POST);
+                TileEntitySign sign = block.GetTileEntity() as TileEntitySign;
+                Assert.IsNotNull(sign);
+                sign.Text1 = "{\"text\":\"Duwamish\"}";
+                sign.Text2 = "{\"text\":\"Avenue\"}";
+                blocks.SetBlock(x, y, z, block);
+                blocks.SetData(x, y, z, 0);
+                world.Save();
+
+                world = NbtWorld.Open(copy);
+                blocks = world.GetBlockManager() as AnvilBlockManager;
+                sign = blocks.GetTileEntity(x, y, z) as TileEntitySign;
+                Assert.IsNotNull(sign);
+                Assert.AreEqual(x, sign.X);
+                Assert.AreEqual(y, sign.Y);
+                Assert.AreEqual(z, sign.Z);
+                Assert.AreEqual("{\"text\":\"Duwamish\"}", sign.Text1);
+                Assert.AreEqual("{\"text\":\"Avenue\"}", sign.Text2);
+                TagNodeCompound front = sign.Source["front_text"].ToTagCompound();
+                TagNodeList messages = front["messages"].ToTagList();
+                Assert.AreEqual(4, messages.Count);
+                Assert.AreEqual(TagType.TAG_STRING, messages.ValueType);
+                Assert.AreEqual("Duwamish", messages[0].ToTagString().Data);
+                Assert.AreEqual("Avenue", messages[1].ToTagString().Data);
                 blocks = null;
                 world = null;
             }

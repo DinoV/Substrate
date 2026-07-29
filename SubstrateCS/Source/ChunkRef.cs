@@ -361,9 +361,11 @@ namespace Substrate
         private BlockKey TranslateCoordinatesHandler (int lx, int ly, int lz)
         {
             int x = X * _blocks.XDim + lx;
+            AquaticChunk aquaticChunk = _chunk as AquaticChunk;
+            int y = ly + (aquaticChunk == null ? 0 : aquaticChunk.MinimumY);
             int z = Z * _blocks.ZDim + lz;
 
-            return new BlockKey(x, ly, z);
+            return new BlockKey(x, y, z);
         }
     }
 }

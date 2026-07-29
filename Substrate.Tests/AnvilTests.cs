@@ -4,6 +4,7 @@ using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Substrate.Core;
 using Substrate.Nbt;
+using Substrate.TileEntities;
 
 namespace Substrate.Tests
 {
@@ -229,6 +230,88 @@ namespace Substrate.Tests
             Assert.AreEqual("minecraft:oak_sign", roundTrip.GetBlockName(3, 0, 0));
             Assert.AreEqual("4", roundTrip.GetBlockProperties(3, 0, 0)["rotation"].ToTagString().Data);
             Assert.AreEqual("minecraft:bricks", roundTrip.GetBlockName(4, 0, 0));
+        }
+
+        [TestMethod]
+        public void SignTextReadsAndWritesModernFrontText()
+        {
+            TileEntitySign sign = new TileEntitySign();
+            sign.X = 12;
+            sign.Y = 64;
+            sign.Z = 34;
+            sign.Text1 = "{\"text\":\"First\"}";
+            sign.Text2 = "{\"text\":\"Second\"}";
+            TagNodeCompound tree = sign.BuildTree().ToTagCompound();
+
+            TagNodeCompound front = tree["front_text"].ToTagCompound();
+            TagNodeList messages = front["messages"].ToTagList();
+            Assert.AreEqual(4, messages.Count);
+            Assert.AreEqual(TagType.TAG_STRING, messages.ValueType);
+            Assert.AreEqual("First", messages[0].ToTagString().Data);
+            Assert.AreEqual("Second", messages[1].ToTagString().Data);
+            Assert.AreEqual("black", front["color"].ToTagString().Data);
+            Assert.AreEqual(0, front["has_glowing_text"].ToTagByte().Data);
+            Assert.IsInstanceOfType(tree["components"], typeof(TagNodeCompound));
+            Assert.AreEqual(0, tree["keepPacked"].ToTagByte().Data);
+
+            tree.Remove("Text1");
+            tree.Remove("Text2");
+            tree.Remove("Text3");
+            tree.Remove("Text4");
+            front["color"] = new TagNodeString("blue");
+            TileEntitySign loaded = TileEntityFactory.Create(tree) as TileEntitySign;
+            Assert.IsNotNull(loaded);
+            Assert.AreEqual(sign.Text1, loaded.Text1);
+            Assert.AreEqual(sign.Text2, loaded.Text2);
+            Assert.AreEqual("blue",
+                loaded.BuildTree().ToTagCompound()["front_text"].ToTagCompound()["color"].ToTagString().Data);
+        }
+
+        [TestMethod]
+        public void SignTextReadsLegacyStringComponents()
+        {
+            TileEntitySign sign = new TileEntitySign();
+            TagNodeCompound tree = sign.BuildTree().ToTagCompound();
+            TagNodeList messages = new TagNodeList(TagType.TAG_STRING);
+            messages.Add(new TagNodeString("{\"text\":\"Legacy\"}"));
+            messages.Add(new TagNodeString("{\"text\":\"Second\"}"));
+            messages.Add(new TagNodeString("{\"text\":\"\"}"));
+            messages.Add(new TagNodeString("{\"text\":\"\"}"));
+            tree["front_text"].ToTagCompound()["messages"] = messages;
+
+            TileEntitySign loaded = TileEntityFactory.Create(tree) as TileEntitySign;
+
+            Assert.IsNotNull(loaded);
+            Assert.AreEqual("{\"text\":\"Legacy\"}", loaded.Text1);
+            Assert.AreEqual("{\"text\":\"Second\"}", loaded.Text2);
+        }
+
+        [TestMethod]
+        public void SignTextReadsNativeMinecraft262PlainStrings()
+        {
+            TileEntitySign sign = new TileEntitySign();
+            sign.X = 80;
+            sign.Y = 63;
+            sign.Z = 243;
+            TagNodeCompound tree = sign.BuildTree().ToTagCompound();
+            tree.Remove("Text1");
+            tree.Remove("Text2");
+            tree.Remove("Text3");
+            tree.Remove("Text4");
+            TagNodeList messages = new TagNodeList(TagType.TAG_STRING);
+            messages.Add(new TagNodeString("This"));
+            messages.Add(new TagNodeString("Is"));
+            messages.Add(new TagNodeString("A"));
+            messages.Add(new TagNodeString("Message"));
+            tree["front_text"].ToTagCompound()["messages"] = messages;
+
+            TileEntitySign loaded = TileEntityFactory.Create(tree) as TileEntitySign;
+
+            Assert.IsNotNull(loaded);
+            Assert.AreEqual("{\"text\":\"This\"}", loaded.Text1);
+            Assert.AreEqual("{\"text\":\"Is\"}", loaded.Text2);
+            Assert.AreEqual("{\"text\":\"A\"}", loaded.Text3);
+            Assert.AreEqual("{\"text\":\"Message\"}", loaded.Text4);
         }
 
         [TestMethod]
