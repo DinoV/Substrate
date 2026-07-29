@@ -82,6 +82,65 @@ namespace Substrate.Tests
             }
         }
 
+        [TestMethod]
+        public void LegacyConnectedBlocksSaveModernNeighborStates()
+        {
+            string source = Path.GetFullPath(@"..\..\Data\26_2-missing-heightmaps\");
+            string copy = Path.Combine(Path.GetTempPath(), "Substrate-" + Guid.NewGuid().ToString("N"));
+            CopyDirectory(source, copy);
+            try {
+                NbtWorld world = NbtWorld.Open(copy);
+                AnvilBlockManager blocks = world.GetBlockManager() as AnvilBlockManager;
+                const int y = 112;
+
+                blocks.SetID(2418, y, 1905, BlockType.STONE);
+                blocks.SetID(2418, y, 1907, BlockType.STONE);
+                blocks.SetID(2418, y, 1906, BlockType.IRON_BARS);
+
+                blocks.SetID(2421, y, 1906, BlockType.STONE);
+                blocks.SetID(2423, y, 1906, BlockType.STONE);
+                blocks.SetID(2422, y, 1906, BlockType.FENCE);
+
+                blocks.SetID(2426, y, 1905, BlockType.STONE);
+                blocks.SetID(2426, y, 1906, BlockType.COBBLESTONE_WALL);
+
+                blocks.SetID(2418, y, 1911, BlockType.REDSTONE_WIRE);
+                blocks.SetID(2418, y, 1912, BlockType.REDSTONE_WIRE);
+                blocks.SetID(2418, y, 1913, BlockType.REDSTONE_WIRE);
+
+                blocks.SetID(2421, y, 1912, BlockType.TRIPWIRE_HOOK);
+                blocks.SetID(2423, y, 1912, BlockType.TRIPWIRE_HOOK);
+                blocks.SetID(2422, y, 1912, BlockType.TRIPWIRE);
+
+                blocks.SetID(2426, y - 1, 1912, BlockType.END_STONE);
+                blocks.SetID(2426, y, 1911, 200); // chorus flower
+                blocks.SetID(2426, y, 1912, 199); // chorus plant
+                world.Save();
+
+                world = NbtWorld.Open(copy);
+                blocks = world.GetBlockManager() as AnvilBlockManager;
+                Assert.AreEqual("true", blocks.GetBlockProperty(2418, y, 1906, BlockProperties.North));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2418, y, 1906, BlockProperties.South));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2422, y, 1906, BlockProperties.East));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2422, y, 1906, BlockProperties.West));
+                Assert.AreEqual("low", blocks.GetBlockProperty(2426, y, 1906, BlockProperties.North));
+                Assert.AreEqual("none", blocks.GetBlockProperty(2426, y, 1906, BlockProperties.South));
+                Assert.AreEqual("side", blocks.GetBlockProperty(2418, y, 1912, BlockProperties.North));
+                Assert.AreEqual("side", blocks.GetBlockProperty(2418, y, 1912, BlockProperties.South));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2422, y, 1912, BlockProperties.East));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2422, y, 1912, BlockProperties.West));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2426, y, 1912, BlockProperties.North));
+                Assert.AreEqual("true", blocks.GetBlockProperty(2426, y, 1912, BlockProperties.Down));
+                blocks = null;
+                world = null;
+            }
+            finally {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Directory.Delete(copy, true);
+            }
+        }
+
         private static void CopyDirectory(string source, string destination)
         {
             Directory.CreateDirectory(destination);

@@ -291,7 +291,7 @@ namespace Substrate
             cache.Blocks.AutoLight = autolight;
             cache.Blocks.AutoTileTick = autoTileTick;
 
-            UpdatePaneConnections(x, y, z);
+            UpdateDerivedConnections(x, y, z);
         }
 
         /// <inheritdoc/>
@@ -385,41 +385,83 @@ namespace Substrate
             }
 
             cache.Blocks.SetData(x & chunkXMask, LocalY(y), z & chunkZMask, data);
-            UpdatePaneConnections(x, y, z);
+            UpdateDerivedConnections(x, y, z);
         }
 
-        private void UpdatePaneConnections (int x, int y, int z)
+        private void UpdateDerivedConnections (int x, int y, int z)
         {
-            UpdatePaneState(x, y, z);
-            UpdatePaneState(x - 1, y, z);
-            UpdatePaneState(x + 1, y, z);
-            UpdatePaneState(x, y, z - 1);
-            UpdatePaneState(x, y, z + 1);
+            UpdateDerivedState(x, y, z);
+            UpdateDerivedState(x - 1, y, z);
+            UpdateDerivedState(x + 1, y, z);
+            UpdateDerivedState(x, y, z - 1);
+            UpdateDerivedState(x, y, z + 1);
+            UpdateDerivedState(x, y - 1, z);
+            UpdateDerivedState(x, y + 1, z);
         }
 
-        private void UpdatePaneState (int x, int y, int z)
+        private void UpdateDerivedState (int x, int y, int z)
         {
-            ChunkRef paneChunk = GetChunk(x, y, z);
-            if (paneChunk == null) return;
-            int localY = y - paneChunk.MinimumY;
-            if (localY < 0 || localY >= paneChunk.Blocks.YDim) return;
+            ChunkRef blockChunk = GetChunk(x, y, z);
+            if (blockChunk == null) return;
+            int localY = y - blockChunk.MinimumY;
+            if (localY < 0 || localY >= blockChunk.Blocks.YDim) return;
 
             int localX = x & chunkXMask;
             int localZ = z & chunkZMask;
-            int id = paneChunk.Blocks.GetID(localX, localY, localZ);
-            if (!IsPane(id)) return;
+            int id = blockChunk.Blocks.GetID(localX, localY, localZ);
+            if (!HasDerivedConnections(id)) return;
 
-            int data = paneChunk.Blocks.GetData(localX, localY, localZ);
+            int data = blockChunk.Blocks.GetData(localX, localY, localZ);
             string name;
-            TagNodeCompound ignored;
-            if (!BlockInfo.TryGetLegacyBlockState(id, data, out name, out ignored)) return;
+            TagNodeCompound properties;
+            if (!BlockInfo.TryGetLegacyBlockState(id, data, out name, out properties)) return;
+            if (properties == null) properties = new TagNodeCompound();
 
-            TagNodeCompound properties = new TagNodeCompound();
-            properties["north"] = new TagNodeString(PaneConnectsTo(x, y, z - 1) ? "true" : "false");
-            properties["east"] = new TagNodeString(PaneConnectsTo(x + 1, y, z) ? "true" : "false");
-            properties["south"] = new TagNodeString(PaneConnectsTo(x, y, z + 1) ? "true" : "false");
-            properties["west"] = new TagNodeString(PaneConnectsTo(x - 1, y, z) ? "true" : "false");
-            paneChunk.SetBlockState(localX, y, localZ, name, properties);
+            if (IsPaneOrBars(id)) {
+                SetBooleanConnection(properties, "north", PaneConnectsTo(x, y, z - 1));
+                SetBooleanConnection(properties, "east", PaneConnectsTo(x + 1, y, z));
+                SetBooleanConnection(properties, "south", PaneConnectsTo(x, y, z + 1));
+                SetBooleanConnection(properties, "west", PaneConnectsTo(x - 1, y, z));
+            }
+            else if (IsFence(id)) {
+                SetBooleanConnection(properties, "north", FenceConnectsTo(x, y, z - 1));
+                SetBooleanConnection(properties, "east", FenceConnectsTo(x + 1, y, z));
+                SetBooleanConnection(properties, "south", FenceConnectsTo(x, y, z + 1));
+                SetBooleanConnection(properties, "west", FenceConnectsTo(x - 1, y, z));
+            }
+            else if (id == BlockType.COBBLESTONE_WALL) {
+                bool north = WallConnectsTo(x, y, z - 1);
+                bool east = WallConnectsTo(x + 1, y, z);
+                bool south = WallConnectsTo(x, y, z + 1);
+                bool west = WallConnectsTo(x - 1, y, z);
+                SetWallConnection(properties, "north", north);
+                SetWallConnection(properties, "east", east);
+                SetWallConnection(properties, "south", south);
+                SetWallConnection(properties, "west", west);
+                bool straight = (north && south && !east && !west) || (east && west && !north && !south);
+                SetBooleanConnection(properties, "up", !straight || GetBlockIDAt(x, y + 1, z) != BlockType.AIR);
+            }
+            else if (id == BlockType.REDSTONE_WIRE) {
+                SetWireConnection(properties, "north", x, y, z - 1);
+                SetWireConnection(properties, "east", x + 1, y, z);
+                SetWireConnection(properties, "south", x, y, z + 1);
+                SetWireConnection(properties, "west", x - 1, y, z);
+            }
+            else if (id == BlockType.TRIPWIRE) {
+                SetBooleanConnection(properties, "north", IsTripwireConnector(GetBlockIDAt(x, y, z - 1)));
+                SetBooleanConnection(properties, "east", IsTripwireConnector(GetBlockIDAt(x + 1, y, z)));
+                SetBooleanConnection(properties, "south", IsTripwireConnector(GetBlockIDAt(x, y, z + 1)));
+                SetBooleanConnection(properties, "west", IsTripwireConnector(GetBlockIDAt(x - 1, y, z)));
+            }
+            else if (id == 199) {
+                SetBooleanConnection(properties, "north", IsChorusConnector(GetBlockIDAt(x, y, z - 1), false));
+                SetBooleanConnection(properties, "east", IsChorusConnector(GetBlockIDAt(x + 1, y, z), false));
+                SetBooleanConnection(properties, "south", IsChorusConnector(GetBlockIDAt(x, y, z + 1), false));
+                SetBooleanConnection(properties, "west", IsChorusConnector(GetBlockIDAt(x - 1, y, z), false));
+                SetBooleanConnection(properties, "up", IsChorusConnector(GetBlockIDAt(x, y + 1, z), false));
+                SetBooleanConnection(properties, "down", IsChorusConnector(GetBlockIDAt(x, y - 1, z), true));
+            }
+            blockChunk.SetBlockState(localX, y, localZ, name, properties);
         }
 
         private bool PaneConnectsTo (int x, int y, int z)
@@ -430,13 +472,94 @@ namespace Substrate
             if (localY < 0 || localY >= neighbor.Blocks.YDim) return false;
             int id = neighbor.Blocks.GetID(x & chunkXMask, localY, z & chunkZMask);
             BlockInfo info = BlockInfo.BlockTable[id];
-            return IsPane(id) || id == BlockType.IRON_BARS
+            return IsPaneOrBars(id)
                 || (info != null && info.State == BlockState.SOLID);
         }
 
-        private static bool IsPane (int id)
+        private bool FenceConnectsTo (int x, int y, int z)
         {
-            return id == BlockType.GLASS_PANE || id == BlockType.STAINED_GLASS_PANE;
+            int id = GetBlockIDAt(x, y, z);
+            BlockInfo info = BlockInfo.BlockTable[id];
+            return IsFence(id) || IsFenceGate(id)
+                || (info != null && info.State == BlockState.SOLID);
+        }
+
+        private bool WallConnectsTo (int x, int y, int z)
+        {
+            int id = GetBlockIDAt(x, y, z);
+            BlockInfo info = BlockInfo.BlockTable[id];
+            return id == BlockType.COBBLESTONE_WALL || IsFenceGate(id)
+                || (info != null && info.State == BlockState.SOLID);
+        }
+
+        private void SetWireConnection (TagNodeCompound properties, string direction, int x, int y, int z)
+        {
+            int neighbor = GetBlockIDAt(x, y, z);
+            string value = IsRedstoneConnector(neighbor) ? "side" : "none";
+            BlockInfo info = BlockInfo.BlockTable[neighbor];
+            if (info != null && info.State == BlockState.SOLID
+                    && GetBlockIDAt(x, y + 1, z) == BlockType.REDSTONE_WIRE)
+                value = "up";
+            properties[direction] = new TagNodeString(value);
+        }
+
+        private int GetBlockIDAt (int x, int y, int z)
+        {
+            ChunkRef blockChunk = GetChunk(x, y, z);
+            if (blockChunk == null) return BlockType.AIR;
+            int localY = y - blockChunk.MinimumY;
+            if (localY < 0 || localY >= blockChunk.Blocks.YDim) return BlockType.AIR;
+            return blockChunk.Blocks.GetID(x & chunkXMask, localY, z & chunkZMask);
+        }
+
+        private static void SetBooleanConnection (TagNodeCompound properties, string name, bool connected)
+        {
+            properties[name] = new TagNodeString(connected ? "true" : "false");
+        }
+
+        private static void SetWallConnection (TagNodeCompound properties, string name, bool connected)
+        {
+            properties[name] = new TagNodeString(connected ? "low" : "none");
+        }
+
+        private static bool HasDerivedConnections (int id)
+        {
+            return IsPaneOrBars(id) || IsFence(id) || id == BlockType.COBBLESTONE_WALL
+                || id == BlockType.REDSTONE_WIRE || id == BlockType.TRIPWIRE || id == 199;
+        }
+
+        private static bool IsPaneOrBars (int id)
+        {
+            return id == BlockType.GLASS_PANE || id == BlockType.STAINED_GLASS_PANE
+                || id == BlockType.IRON_BARS;
+        }
+
+        private static bool IsFence (int id)
+        {
+            return id == BlockType.FENCE || id == BlockType.NETHER_BRICK_FENCE
+                || (id >= 188 && id <= 192);
+        }
+
+        private static bool IsFenceGate (int id)
+        {
+            return id == BlockType.FENCE_GATE || (id >= 183 && id <= 187);
+        }
+
+        private static bool IsRedstoneConnector (int id)
+        {
+            return id == BlockType.REDSTONE_WIRE || id == 69 || id == 75 || id == 76
+                || id == 93 || id == 94 || id == 123 || id == 124
+                || id == 149 || id == 150 || id == 151 || id == 178;
+        }
+
+        private static bool IsTripwireConnector (int id)
+        {
+            return id == BlockType.TRIPWIRE || id == BlockType.TRIPWIRE_HOOK;
+        }
+
+        private static bool IsChorusConnector (int id, bool allowEndStone)
+        {
+            return id == 199 || id == 200 || (allowEndStone && id == BlockType.END_STONE);
         }
 
         #endregion
