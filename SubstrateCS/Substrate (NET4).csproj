@@ -61,6 +61,9 @@
     <EmbeddedResource Include="Source\Data\BlockRegistry-26.2.txt">
       <LogicalName>Substrate.Data.BlockRegistry-26.2.txt</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Source\Data\LegacyBlockStates.txt">
+      <LogicalName>Substrate.Data.LegacyBlockStates.txt</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

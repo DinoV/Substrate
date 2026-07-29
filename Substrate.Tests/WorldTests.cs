@@ -5,6 +5,7 @@ using System.Text;
 using Substrate;
 using Substrate.TileEntities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Security.Cryptography;
 namespace Substrate.Tests
 {
     [TestClass]
@@ -18,7 +19,41 @@ namespace Substrate.Tests
             var height = bm.GetHeight(2431, 1911);
             Assert.AreEqual(111, height);
         }
+        [TestMethod]
+        public void LegacyBrickBlockSavesWithModernName()
+        {
+            string source = Path.GetFullPath(@"..\..\Data\26_2-missing-heightmaps\");
+            string copy = Path.Combine(Path.GetTempPath(), "Substrate-" + Guid.NewGuid().ToString("N"));
+            CopyDirectory(source, copy);
+            try {
+                NbtWorld world = NbtWorld.Open(copy);
+                AnvilBlockManager blocks = world.GetBlockManager() as AnvilBlockManager;
+                blocks.SetID(2431, 111, 1911, BlockInfo.BrickBlock.ID);
+                blocks.SetData(2431, 111, 1911, 0);
+                world.Save();
 
+                world = NbtWorld.Open(copy);
+                blocks = world.GetBlockManager() as AnvilBlockManager;
+                Assert.AreEqual(BlockInfo.BrickBlock.ID, blocks.GetID(2431, 111, 1911));
+                Assert.AreEqual("minecraft:bricks", blocks.GetStringID(2431, 111, 1911));
+                blocks = null;
+                world = null;
+            }
+            finally {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Directory.Delete(copy, true);
+            }
+        }
+
+        private static void CopyDirectory(string source, string destination)
+        {
+            Directory.CreateDirectory(destination);
+            foreach (string file in Directory.GetFiles(source))
+                File.Copy(file, Path.Combine(destination, Path.GetFileName(file)));
+            foreach (string directory in Directory.GetDirectories(source))
+                CopyDirectory(directory, Path.Combine(destination, Path.GetFileName(directory)));
+        }
         [TestMethod]
         public void OpenTest_262_creative()
         {

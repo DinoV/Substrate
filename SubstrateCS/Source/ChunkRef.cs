@@ -90,6 +90,13 @@ namespace Substrate
             return aquatic == null ? null : aquatic.GetBlockProperties(x, y, z);
         }
 
+        /// <summary>Gets the namespaced block name at local X/Z and world Y coordinates.</summary>
+        public string GetBlockName (int x, int y, int z)
+        {
+            AquaticChunk aquatic = GetChunk() as AquaticChunk;
+            return aquatic == null ? null : aquatic.GetBlockName(x, y, z);
+        }
+
         /// <summary>
         /// Gets the collection of all blocks and their data stored in the chunk.
         /// </summary>

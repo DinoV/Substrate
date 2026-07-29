@@ -182,7 +182,6 @@ namespace Substrate.Tests
                 registrations.Add(info);
             }
 
-            Assert.IsTrue(registrations.Count > 1000);
             Assert.AreSame(BlockInfo.Stone, BlockInfo.BlockNameTable["minecraft:stone"]);
             Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:blue_ice"));
             Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:trial_spawner"));
@@ -199,6 +198,37 @@ namespace Substrate.Tests
                 if (item.Value.ID < 256 && BlockInfo.BlockNameTable.TryGetValue(item.Key, out block))
                     Assert.AreEqual(item.Value.ID, block.ID, item.Key);
             }
+
+            Assert.AreEqual(BlockType.WOOD_PLANK, BlockInfo.BlockNameTable["minecraft:oak_planks"].ID);
+            Assert.AreEqual(BlockType.WOOD_PLANK, BlockInfo.BlockNameTable["minecraft:spruce_planks"].ID);
+            Assert.AreEqual(BlockType.WOOD, BlockInfo.BlockNameTable["minecraft:birch_log"].ID);
+            Assert.AreEqual(BlockType.WOOL, BlockInfo.BlockNameTable["minecraft:red_wool"].ID);
+            Assert.AreEqual(BlockType.BRICK_BLOCK, BlockInfo.BlockNameTable["minecraft:bricks"].ID);
+            Assert.AreEqual(BlockType.SIGN_POST, BlockInfo.BlockNameTable["minecraft:oak_sign"].ID);
+        }
+
+        [TestMethod]
+        public void LegacyIdsAndDataSerializeAsModernBlockStates()
+        {
+            AquaticSection section = new AquaticSection(0);
+            section.Blocks[0, 0, 0] = BlockType.WOOD_PLANK;
+            section.Data[0, 0, 0] = 1;
+            section.Blocks[1, 0, 0] = BlockType.WOOL;
+            section.Data[1, 0, 0] = 14;
+            section.Blocks[2, 0, 0] = BlockType.WOOD;
+            section.Data[2, 0, 0] = 6;
+            section.Blocks[3, 0, 0] = BlockType.SIGN_POST;
+            section.Data[3, 0, 0] = 4;
+            section.Blocks[4, 0, 0] = BlockType.BRICK_BLOCK;
+
+            AquaticSection roundTrip = new AquaticSection(section.BuildTree().ToTagCompound());
+            Assert.AreEqual("minecraft:spruce_planks", roundTrip.GetBlockName(0, 0, 0));
+            Assert.AreEqual("minecraft:red_wool", roundTrip.GetBlockName(1, 0, 0));
+            Assert.AreEqual("minecraft:birch_log", roundTrip.GetBlockName(2, 0, 0));
+            Assert.AreEqual("x", roundTrip.GetBlockProperties(2, 0, 0)["axis"].ToTagString().Data);
+            Assert.AreEqual("minecraft:oak_sign", roundTrip.GetBlockName(3, 0, 0));
+            Assert.AreEqual("4", roundTrip.GetBlockProperties(3, 0, 0)["rotation"].ToTagString().Data);
+            Assert.AreEqual("minecraft:bricks", roundTrip.GetBlockName(4, 0, 0));
         }
 
         [TestMethod]

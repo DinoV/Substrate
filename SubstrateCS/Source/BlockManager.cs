@@ -299,6 +299,9 @@ namespace Substrate
                 return null;
             }
 
+            string modernName = cache.GetBlockName(x & chunkXMask, y, z & chunkZMask);
+            if (modernName != null)
+                return modernName;
             BlockInfo info = cache.Blocks.GetInfo(x & chunkXMask, LocalY(y), z & chunkZMask);
             return info == null ? null : info.StrID;
         }

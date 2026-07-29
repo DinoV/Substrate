@@ -270,6 +270,11 @@ namespace Substrate
             for (int i = 0; i < _palette.Length; i++)
                 if (_palette[i].ID == id && _palette[i].Data == data) return _palette[i];
 
+            string legacyName;
+            TagNodeCompound legacyProperties;
+            if (BlockInfo.TryGetLegacyBlockState(id, data, out legacyName, out legacyProperties))
+                return new PaletteBlock(legacyName, legacyProperties, id, data);
+
             BlockInfo blockInfo = BlockInfo.BlockTable[id];
             if (blockInfo != null && blockInfo.StrID != null)
                 return new PaletteBlock(blockInfo.StrID, null, id, data);
@@ -442,6 +447,10 @@ namespace Substrate
             TagNode propertiesNode;
             if (tree == null || !tree.TryGetValue("Properties", out propertiesNode)) propertiesNode = null;
             TagNodeCompound properties = propertiesNode as TagNodeCompound;
+            int legacyId;
+            int legacyData;
+            if (BlockInfo.TryGetLegacyBlockState(name, properties, out legacyId, out legacyData))
+                return new PaletteBlock(name, properties, legacyId, legacyData);
             BlockInfo blockInfo;
             if (name != null && BlockInfo.BlockNameTable.TryGetValue(name, out blockInfo))
                 return new PaletteBlock(name, properties, blockInfo.ID, 0);

@@ -258,7 +258,17 @@ namespace Substrate
         private static readonly int[] _luminanceTable;
 
         private static readonly Dictionary<string, BlockInfo> _blockNameTable = new Dictionary<string, BlockInfo>();
+        private static readonly Dictionary<int, LegacyBlockState> _legacyBlockStates = new Dictionary<int, LegacyBlockState>();
+        private static readonly Dictionary<string, int> _legacyBlockIds = new Dictionary<string, int>();
+        private static readonly Dictionary<string, int> _legacyBlockStateKeys = new Dictionary<string, int>();
+        private static readonly Dictionary<int, string> _legacyDefaultBlockNames = new Dictionary<int, string>();
         private static int _nextNamedBlockId = MAX_BLOCKS - 1;
+
+        private struct LegacyBlockState
+        {
+            public string Name;
+            public TagNodeCompound Properties;
+        }
 
         private class CacheTableArray<T> : ICacheTable<T>
         {
@@ -561,6 +571,7 @@ namespace Substrate
 
         private static void RegisterModernBlocks()
         {
+            LoadLegacyBlockStates();
             List<BlockInfo> blocks = new List<BlockInfo>();
             Assembly assembly = Assembly.GetExecutingAssembly();
             using (Stream stream = assembly.GetManifestResourceStream("Substrate.Data.BlockRegistry-26.2.txt")) {
@@ -576,15 +587,23 @@ namespace Substrate
                         BlockInfo info;
                         if (!_blockNameTable.TryGetValue(stringId, out info)) {
                             ItemInfo legacyItem;
+                            int legacyId;
                             if (ItemInfo.StrTable.TryGetValue(stringId, out legacyItem)
-                                    && legacyItem.ID >= 0 && legacyItem.ID < 256) {
-                                info = _blockTable[legacyItem.ID];
+                                    && legacyItem.ID >= 0 && legacyItem.ID < 256)
+                                legacyId = legacyItem.ID;
+                            else if (!_legacyBlockIds.TryGetValue(stringId, out legacyId))
+                                legacyId = -1;
+                            if (legacyId >= 0) {
+                                info = _blockTable[legacyId];
                                 if (info == null) {
                                     int separator = stringId.IndexOf(':');
                                     string path = separator < 0 ? stringId : stringId.Substring(separator + 1);
-                                    info = new BlockInfo(legacyItem.ID, DisplayName(path), stringId);
+                                    info = new BlockInfo(legacyId, DisplayName(path), stringId);
                                 }
-                                if (info._strId == null)
+                                string defaultName;
+                                if (info._strId == null
+                                        && (!_legacyDefaultBlockNames.TryGetValue(legacyId, out defaultName)
+                                            || defaultName == stringId))
                                     info._strId = stringId;
                                 _blockNameTable[stringId] = info;
                             }
@@ -599,6 +618,90 @@ namespace Substrate
                 }
             }
             ModernBlocks = blocks.AsReadOnly();
+        }
+
+        private static void LoadLegacyBlockStates()
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream("Substrate.Data.LegacyBlockStates.txt")) {
+                if (stream == null)
+                    throw new InvalidOperationException("The embedded legacy block-state registry is missing.");
+
+                using (StreamReader reader = new StreamReader(stream)) {
+                    string line;
+                    while ((line = reader.ReadLine()) != null) {
+                        int separator = line.IndexOf('|');
+                        int dataSeparator = line.IndexOf(':');
+                        if (separator <= dataSeparator || dataSeparator <= 0) continue;
+
+                        int id;
+                        int data;
+                        if (!Int32.TryParse(line.Substring(0, dataSeparator), out id)
+                                || !Int32.TryParse(line.Substring(dataSeparator + 1, separator - dataSeparator - 1), out data))
+                            continue;
+
+                        string stateText = line.Substring(separator + 1);
+                        int propertiesStart = stateText.IndexOf('[');
+                        string name = propertiesStart < 0 ? stateText : stateText.Substring(0, propertiesStart);
+                        TagNodeCompound properties = null;
+                        if (propertiesStart >= 0 && stateText.EndsWith("]")) {
+                            properties = new TagNodeCompound();
+                            string propertyText = stateText.Substring(propertiesStart + 1, stateText.Length - propertiesStart - 2);
+                            foreach (string pair in propertyText.Split(',')) {
+                                int equals = pair.IndexOf('=');
+                                if (equals > 0)
+                                    properties[pair.Substring(0, equals)] = new TagNodeString(pair.Substring(equals + 1));
+                            }
+                        }
+
+                        int key = (id << 4) | (data & 15);
+                        _legacyBlockStates[key] = new LegacyBlockState { Name = name, Properties = properties };
+                        _legacyBlockStateKeys[LegacyBlockStateKey(name, properties)] = key;
+                        if (data == 0 && !_legacyDefaultBlockNames.ContainsKey(id))
+                            _legacyDefaultBlockNames[id] = name;
+                        if (!_legacyBlockIds.ContainsKey(name))
+                            _legacyBlockIds[name] = id;
+                    }
+                }
+            }
+        }
+
+        internal static bool TryGetLegacyBlockState(int id, int data, out string name, out TagNodeCompound properties)
+        {
+            LegacyBlockState state;
+            if (_legacyBlockStates.TryGetValue((id << 4) | (data & 15), out state)) {
+                name = state.Name;
+                properties = state.Properties == null ? null : state.Properties.Copy() as TagNodeCompound;
+                return true;
+            }
+            name = null;
+            properties = null;
+            return false;
+        }
+
+        internal static bool TryGetLegacyBlockState(string name, TagNodeCompound properties, out int id, out int data)
+        {
+            int key;
+            if (_legacyBlockStateKeys.TryGetValue(LegacyBlockStateKey(name, properties), out key)) {
+                id = key >> 4;
+                data = key & 15;
+                return true;
+            }
+            id = 0;
+            data = 0;
+            return false;
+        }
+
+        private static string LegacyBlockStateKey(string name, TagNodeCompound properties)
+        {
+            if (properties == null || properties.Count == 0) return name;
+            List<string> values = new List<string>();
+            foreach (KeyValuePair<string, TagNode> property in properties) {
+                TagNodeString value = property.Value as TagNodeString;
+                if (value != null) values.Add(property.Key + "=" + value.Data);
+            }
+            values.Sort(StringComparer.Ordinal);
+            return name + "[" + String.Join(",", values.ToArray()) + "]";
         }
 
         private static string DisplayName(string id)
