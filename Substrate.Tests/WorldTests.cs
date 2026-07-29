@@ -46,6 +46,42 @@ namespace Substrate.Tests
             }
         }
 
+        [TestMethod]
+        public void GlassPaneConnectionsAreSavedFromNeighboringWalls()
+        {
+            string source = Path.GetFullPath(@"..\..\Data\26_2-missing-heightmaps\");
+            string copy = Path.Combine(Path.GetTempPath(), "Substrate-" + Guid.NewGuid().ToString("N"));
+            CopyDirectory(source, copy);
+            try {
+                NbtWorld world = NbtWorld.Open(copy);
+                AnvilBlockManager blocks = world.GetBlockManager() as AnvilBlockManager;
+                const int x = 2430;
+                const int y = 112;
+                const int z = 1911;
+                blocks.SetID(x, y, z - 1, BlockType.STONE);
+                blocks.SetID(x, y, z + 1, BlockType.STONE);
+                blocks.SetID(x - 1, y, z, BlockType.AIR);
+                blocks.SetID(x + 1, y, z, BlockType.AIR);
+                blocks.SetID(x, y, z, BlockType.GLASS_PANE);
+                blocks.SetData(x, y, z, 0);
+                world.Save();
+
+                world = NbtWorld.Open(copy);
+                blocks = world.GetBlockManager() as AnvilBlockManager;
+                Assert.AreEqual("true", blocks.GetBlockProperty(x, y, z, BlockProperties.North));
+                Assert.AreEqual("false", blocks.GetBlockProperty(x, y, z, BlockProperties.East));
+                Assert.AreEqual("true", blocks.GetBlockProperty(x, y, z, BlockProperties.South));
+                Assert.AreEqual("false", blocks.GetBlockProperty(x, y, z, BlockProperties.West));
+                blocks = null;
+                world = null;
+            }
+            finally {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Directory.Delete(copy, true);
+            }
+        }
+
         private static void CopyDirectory(string source, string destination)
         {
             Directory.CreateDirectory(destination);

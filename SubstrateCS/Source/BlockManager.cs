@@ -290,6 +290,8 @@ namespace Substrate
             cache.Blocks.AutoFluid = autofluid;
             cache.Blocks.AutoLight = autolight;
             cache.Blocks.AutoTileTick = autoTileTick;
+
+            UpdatePaneConnections(x, y, z);
         }
 
         /// <inheritdoc/>
@@ -383,6 +385,58 @@ namespace Substrate
             }
 
             cache.Blocks.SetData(x & chunkXMask, LocalY(y), z & chunkZMask, data);
+            UpdatePaneConnections(x, y, z);
+        }
+
+        private void UpdatePaneConnections (int x, int y, int z)
+        {
+            UpdatePaneState(x, y, z);
+            UpdatePaneState(x - 1, y, z);
+            UpdatePaneState(x + 1, y, z);
+            UpdatePaneState(x, y, z - 1);
+            UpdatePaneState(x, y, z + 1);
+        }
+
+        private void UpdatePaneState (int x, int y, int z)
+        {
+            ChunkRef paneChunk = GetChunk(x, y, z);
+            if (paneChunk == null) return;
+            int localY = y - paneChunk.MinimumY;
+            if (localY < 0 || localY >= paneChunk.Blocks.YDim) return;
+
+            int localX = x & chunkXMask;
+            int localZ = z & chunkZMask;
+            int id = paneChunk.Blocks.GetID(localX, localY, localZ);
+            if (!IsPane(id)) return;
+
+            int data = paneChunk.Blocks.GetData(localX, localY, localZ);
+            string name;
+            TagNodeCompound ignored;
+            if (!BlockInfo.TryGetLegacyBlockState(id, data, out name, out ignored)) return;
+
+            TagNodeCompound properties = new TagNodeCompound();
+            properties["north"] = new TagNodeString(PaneConnectsTo(x, y, z - 1) ? "true" : "false");
+            properties["east"] = new TagNodeString(PaneConnectsTo(x + 1, y, z) ? "true" : "false");
+            properties["south"] = new TagNodeString(PaneConnectsTo(x, y, z + 1) ? "true" : "false");
+            properties["west"] = new TagNodeString(PaneConnectsTo(x - 1, y, z) ? "true" : "false");
+            paneChunk.SetBlockState(localX, y, localZ, name, properties);
+        }
+
+        private bool PaneConnectsTo (int x, int y, int z)
+        {
+            ChunkRef neighbor = GetChunk(x, y, z);
+            if (neighbor == null) return false;
+            int localY = y - neighbor.MinimumY;
+            if (localY < 0 || localY >= neighbor.Blocks.YDim) return false;
+            int id = neighbor.Blocks.GetID(x & chunkXMask, localY, z & chunkZMask);
+            BlockInfo info = BlockInfo.BlockTable[id];
+            return IsPane(id) || id == BlockType.IRON_BARS
+                || (info != null && info.State == BlockState.SOLID);
+        }
+
+        private static bool IsPane (int id)
+        {
+            return id == BlockType.GLASS_PANE || id == BlockType.STAINED_GLASS_PANE;
         }
 
         #endregion

@@ -97,6 +97,15 @@ namespace Substrate
             return aquatic == null ? null : aquatic.GetBlockName(x, y, z);
         }
 
+        /// <summary>Sets a namespaced block state at local X/Z and world Y coordinates.</summary>
+        public bool SetBlockState (int x, int y, int z, string name, TagNodeCompound properties)
+        {
+            AquaticChunk aquatic = GetChunk() as AquaticChunk;
+            if (aquatic == null) return false;
+            aquatic.SetBlockState(x, y, z, name, properties);
+            return true;
+        }
+
         /// <summary>
         /// Gets the collection of all blocks and their data stored in the chunk.
         /// </summary>
