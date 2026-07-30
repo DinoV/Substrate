@@ -294,6 +294,36 @@ namespace Substrate
             UpdateDerivedConnections(x, y, z);
         }
 
+        /// <summary>
+        /// Sets a legacy numeric block ID and metadata value atomically.
+        /// Anvil palette chunks serialize the pair as its modern namespaced
+        /// block state; older chunks retain the ID and data values.
+        /// </summary>
+        public void SetID (int x, int y, int z, int id, int data)
+        {
+            cache = GetChunk(x, y, z);
+            if (cache == null || !Check(x, y, z)) {
+                return;
+            }
+
+            bool autolight = cache.Blocks.AutoLight;
+            bool autofluid = cache.Blocks.AutoFluid;
+            bool autoTileTick = cache.Blocks.AutoTileTick;
+
+            cache.Blocks.AutoLight = _autoLight;
+            cache.Blocks.AutoFluid = _autoFluid;
+            cache.Blocks.AutoTileTick = _autoTileTick;
+
+            cache.Blocks.SetID(
+                x & chunkXMask, LocalY(y), z & chunkZMask, id, data);
+
+            cache.Blocks.AutoFluid = autofluid;
+            cache.Blocks.AutoLight = autolight;
+            cache.Blocks.AutoTileTick = autoTileTick;
+
+            UpdateDerivedConnections(x, y, z);
+        }
+
         /// <inheritdoc/>
         public string GetStringID(int x, int y, int z) {
             cache = GetChunk(x, y, z);

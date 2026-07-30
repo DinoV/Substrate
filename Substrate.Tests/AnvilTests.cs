@@ -278,6 +278,37 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void SetIdAndDataWritesModernStatesAndRetainsLegacyValues()
+        {
+            AquaticChunk chunk = AquaticChunk.Create(0, 0);
+            chunk.Blocks.SetID(0, 64, 0, BlockType.STAINED_GLASS, 11);
+            chunk.Blocks.SetID(1, 64, 0, BlockInfo.AcaciaWood.ID, 12);
+
+            MemoryStream stream = new MemoryStream();
+            Assert.IsTrue(chunk.Save(stream));
+            stream.Position = 0;
+            AquaticChunk roundTrip = AquaticChunk.CreateVerified(new NbtTree(stream));
+
+            Assert.AreEqual("minecraft:blue_stained_glass",
+                roundTrip.GetBlockName(0, 64, 0));
+            Assert.AreEqual("minecraft:acacia_wood",
+                roundTrip.GetBlockName(1, 64, 0));
+            Assert.AreEqual(BlockType.STAINED_GLASS,
+                roundTrip.Blocks.GetID(0, 64, 0));
+            Assert.AreEqual(11, roundTrip.Blocks.GetData(0, 64, 0));
+            Assert.AreEqual(BlockInfo.AcaciaWood.ID,
+                roundTrip.Blocks.GetID(1, 64, 0));
+            Assert.AreEqual(12, roundTrip.Blocks.GetData(1, 64, 0));
+
+#pragma warning disable 612, 618
+            AlphaBlockCollection legacy = new AlphaBlockCollection(16, 128, 16);
+#pragma warning restore 612, 618
+            legacy.SetID(2, 65, 3, BlockType.STAINED_GLASS, 11);
+            Assert.AreEqual(BlockType.STAINED_GLASS, legacy.GetID(2, 65, 3));
+            Assert.AreEqual(11, legacy.GetData(2, 65, 3));
+        }
+
+        [TestMethod]
         public void SignTextReadsAndWritesModernFrontText()
         {
             TileEntitySign sign = new TileEntitySign();
