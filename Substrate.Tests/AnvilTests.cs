@@ -101,10 +101,13 @@ namespace Substrate.Tests
             Assert.AreEqual(5000, saved.Root["DataVersion"].ToTagInt().Data);
             Assert.IsTrue(saved.Root.ContainsKey("sections"));
             Assert.IsFalse(saved.Root.ContainsKey("Biomes"));
+            Assert.AreEqual(0, saved.Root["isLightOn"].ToTagByte().Data);
 
             TagNodeCompound savedSection = saved.Root["sections"].ToTagList()[0].ToTagCompound();
             Assert.IsTrue(savedSection.ContainsKey("block_states"));
             Assert.IsTrue(savedSection.ContainsKey("biomes"));
+            Assert.IsFalse(savedSection.ContainsKey("SkyLight"));
+            Assert.IsFalse(savedSection.ContainsKey("BlockLight"));
 
             AquaticChunk reloaded = AquaticChunk.CreateVerified(saved);
             Assert.AreEqual("minecraft:potent_sulfur", reloaded.GetBlockName(1, 319, 2));

@@ -445,12 +445,27 @@ namespace Substrate
             foreach (KeyValuePair<string, TagNode> node in level)
                 levelCopy.Add(node.Key, node.Value);
 
+            // The legacy incremental light engine uses zero-based Y values,
+            // while modern chunks keep heightmaps in world coordinates
+            // starting at -64.  Its results are therefore not reliable after
+            // editing a modern chunk.  Ask Minecraft's light engine to rebuild
+            // the affected chunk instead of saving stale arrays as valid.
+            bool requiresRelight = _modern && _blockManager.IsDirty;
             TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND);
-            for (int i = 0; i < _sections.Length; i++)
-                if (ShouldIncludeSection(_sections[i]))
-                    sections.Add(_sections[i].BuildTree());
+            for (int i = 0; i < _sections.Length; i++) {
+                if (!ShouldIncludeSection(_sections[i]))
+                    continue;
+                TagNodeCompound section = _sections[i].BuildTree().ToTagCompound();
+                if (requiresRelight) {
+                    section.Remove("SkyLight");
+                    section.Remove("BlockLight");
+                }
+                sections.Add(section);
+            }
 
             levelCopy[_modern ? "sections" : "Sections"] = sections;
+            if (requiresRelight)
+                levelCopy["isLightOn"] = new TagNodeByte(0);
 
             if (!_modern && _tileTicks.Count == 0)
                 levelCopy.Remove("TileTicks");
