@@ -7,11 +7,25 @@ using Substrate.Nbt;
 using Substrate.TileEntities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Security.Cryptography;
+using System.Security.Policy;
 namespace Substrate.Tests
 {
     [TestClass]
     public class WorldTests
     {
+        [TestMethod]
+        public void TallGrassHeight()
+        {
+            NbtWorld world = NbtWorld.Open(@"..\..\Data\26_2-missing-heightmaps\");
+            var bm = world.GetBlockManager() as AnvilBlockManager;
+            var height = bm.GetHeight(2939, 504);
+            var block = bm.GetBlock(2939, 111, 504);
+            Assert.AreEqual("minecraft:tall_grass", bm.GetStringID(2939, 111, 504));
+            Assert.IsFalse(block.Info.ObscuresLight);
+            Assert.AreEqual(BlockState.NONSOLID, block.Info.State);
+            Assert.AreEqual(111, height);
+        }
+
         [TestMethod]
         public void OpenTest_262_missing_heightmaps()
         {

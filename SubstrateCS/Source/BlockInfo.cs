@@ -189,6 +189,7 @@ namespace Substrate
         public const int CARPET = 171;
         public const int HARDENED_CLAY = 172;
         public const int COAL_BLOCK = 173;
+        public const int DOUBLE_PLANT = 175;
         public const int CONCRETE = 251;
         public const int CONCRETE_POWDER = 252;
         public const int SEA_LANTERN = 169;
@@ -997,6 +998,7 @@ namespace Substrate
         public static BlockInfo Carpet;
         public static BlockInfo HardenedClay;
         public static BlockInfo CoalBlock;
+        public static BlockInfo DoublePlant;
         public static BlockInfoEx StandingBanner;
         public static BlockInfoEx WallBanner;
 
@@ -1177,6 +1179,8 @@ namespace Substrate
             Carpet = new BlockInfo(171, "Carpet").SetOpacity(0);
             HardenedClay = new BlockInfo(172, "Hardened Clay");
             CoalBlock = new BlockInfo(173, "Block of Coal");
+            DoublePlant = new BlockInfo(BlockType.DOUBLE_PLANT, "Double Plant")
+                .SetOpacity(0).SetState(BlockState.NONSOLID).SetTick(10);
             WallBanner = new BlockInfoEx(BlockType.WALL_BANNER, "Wall Banner");
             StandingBanner = new BlockInfoEx(BlockType.STANDING_BANNER, "Standing Banner");
 

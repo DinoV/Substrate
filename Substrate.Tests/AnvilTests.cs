@@ -111,6 +111,48 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void MissingHeightMapUsesMotionBlockingBlocksAndFluids()
+        {
+            int[] states = new int[4096];
+            states[(10 * 16 + 0) * 16 + 0] = 1; // glass
+            states[(12 * 16 + 0) * 16 + 1] = 2; // water
+            states[(9 * 16 + 0) * 16 + 2] = 3;  // stone below leaves
+            states[(14 * 16 + 0) * 16 + 2] = 4; // leaves
+            states[(8 * 16 + 0) * 16 + 3] = 3;  // stone below tall grass
+            states[(15 * 16 + 0) * 16 + 3] = 5; // tall grass
+            states[(7 * 16 + 0) * 16 + 4] = 3;  // stone below leaf litter
+            states[(13 * 16 + 0) * 16 + 4] = 6; // leaf litter
+
+            TagNodeCompound section = BuildModernSection(0, states);
+            TagNodeList palette = section["block_states"].ToTagCompound()["palette"].ToTagList();
+            palette.Clear();
+            palette.Add(PaletteEntry("minecraft:air"));
+            palette.Add(PaletteEntry("minecraft:glass"));
+            palette.Add(PaletteEntry("minecraft:water"));
+            palette.Add(PaletteEntry("minecraft:stone"));
+            palette.Add(PaletteEntry("minecraft:oak_leaves"));
+            palette.Add(PaletteEntry("minecraft:tall_grass"));
+            palette.Add(PaletteEntry("minecraft:leaf_litter"));
+
+            TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND);
+            sections.Add(section);
+            TagNodeCompound root = new TagNodeCompound();
+            root["DataVersion"] = new TagNodeInt(5000);
+            root["xPos"] = new TagNodeInt(0);
+            root["zPos"] = new TagNodeInt(0);
+            root["Status"] = new TagNodeString("full");
+            root["sections"] = sections;
+            root["block_entities"] = new TagNodeList(TagType.TAG_COMPOUND);
+
+            AquaticChunk chunk = AquaticChunk.CreateVerified(new NbtTree(root));
+            Assert.AreEqual(11, chunk.Blocks.GetHeight(0, 0));
+            Assert.AreEqual(13, chunk.Blocks.GetHeight(1, 0));
+            Assert.AreEqual(10, chunk.Blocks.GetHeight(2, 0));
+            Assert.AreEqual(9, chunk.Blocks.GetHeight(3, 0));
+            Assert.AreEqual(8, chunk.Blocks.GetHeight(4, 0));
+        }
+
+        [TestMethod]
         public void RegionFileRoundTripsOversizedExternalChunkStreams()
         {
             string directory = Path.Combine(Path.GetTempPath(), "Substrate-Anvil-" + Guid.NewGuid().ToString("N"));

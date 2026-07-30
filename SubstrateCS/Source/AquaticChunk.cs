@@ -504,13 +504,23 @@ namespace Substrate
                 for (int z = 0; z < ZDIM; z++) {
                     for (int y = _blocks.YDim - 1; y >= 0; y--) {
                         BlockInfo info = _blockManager.GetInfo(x, y, z);
-                        if (info.ObscuresLight) {
+                        string name = _sections[y / 16].GetBlockName(x, y & 15, z);
+                        if (IsMotionBlocking(info, name)) {
                             _heightMap[x, z] = minimumY + y + 1;
                             break;
                         }
                     }
                 }
             }
+        }
+
+        private static bool IsMotionBlocking(BlockInfo info, string name)
+        {
+            if (info == null || info.State == BlockState.NONSOLID)
+                return false;
+            if (name == "minecraft:leaf_litter")
+                return false;
+            return name == null || !name.EndsWith("_leaves", StringComparison.Ordinal);
         }
 
         #endregion
