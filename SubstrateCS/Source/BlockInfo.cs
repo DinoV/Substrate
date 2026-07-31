@@ -680,6 +680,19 @@ namespace Substrate
             return false;
         }
 
+        /// <summary>
+        /// Converts a legacy numeric block ID and metadata value to its
+        /// complete Aquatic block name and property set.
+        /// </summary>
+        public static void GetModernBlockState (
+            int id, int data, out string name, out TagNodeCompound properties)
+        {
+            if (!TryGetLegacyBlockState(id, data, out name, out properties))
+                throw new ArgumentException(
+                    "Legacy block state " + id + ":" + data
+                    + " has no Aquatic representation.");
+        }
+
         internal static bool TryGetLegacyBlockState(string name, TagNodeCompound properties, out int id, out int data)
         {
             int key;
