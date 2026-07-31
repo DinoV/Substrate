@@ -693,6 +693,48 @@ namespace Substrate
             return false;
         }
 
+        /// <summary>
+        /// Converts a namespaced block name to its pre-Aquatic numeric ID and
+        /// metadata value.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="name"/> is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the block has no exact pre-Aquatic representation.
+        /// </exception>
+        public static void GetLegacyBlockState(
+            string name, out int id, out int data)
+        {
+            GetLegacyBlockState(name, null, out id, out data);
+        }
+
+        /// <summary>
+        /// Converts a namespaced block state to its pre-Aquatic numeric ID and
+        /// metadata value.
+        /// </summary>
+        /// <param name="properties">
+        /// Block-state properties required to distinguish states such as log
+        /// axis and door orientation. May be null for blocks without properties.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="name"/> is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the block state has no exact pre-Aquatic representation.
+        /// </exception>
+        public static void GetLegacyBlockState(
+            string name, TagNodeCompound properties, out int id, out int data)
+        {
+            if (name == null)
+                throw new ArgumentNullException("name");
+            if (!TryGetLegacyBlockState(name, properties, out id, out data))
+                throw new ArgumentException(
+                    "Block state '" + LegacyBlockStateKey(name, properties)
+                    + "' has no pre-Aquatic ID and data representation.",
+                    "name");
+        }
+
         private static string LegacyBlockStateKey(string name, TagNodeCompound properties)
         {
             if (properties == null || properties.Count == 0) return name;

@@ -309,6 +309,39 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void PublicLegacyBlockStateConversionReturnsIdAndDataOrThrows()
+        {
+            int id;
+            int data;
+            BlockInfo.GetLegacyBlockState(
+                AcquaticBlocks.BlueStainedGlass, out id, out data);
+            Assert.AreEqual(BlockType.STAINED_GLASS, id);
+            Assert.AreEqual(11, data);
+
+            BlockInfo.GetLegacyBlockState(
+                AcquaticBlocks.AcaciaWood, out id, out data);
+            Assert.AreEqual(BlockInfo.AcaciaWood.ID, id);
+            Assert.AreEqual(12, data);
+
+            TagNodeCompound properties = new TagNodeCompound();
+            properties[BlockProperties.Axis] = new TagNodeString("y");
+            BlockInfo.GetLegacyBlockState(
+                AcquaticBlocks.AcaciaLog, properties, out id, out data);
+            Assert.AreEqual(BlockInfo.AcaciaWood.ID, id);
+            Assert.AreEqual(0, data);
+
+            bool threw = false;
+            try {
+                BlockInfo.GetLegacyBlockState(
+                    AcquaticBlocks.LeafLitter, out id, out data);
+            }
+            catch (ArgumentException) {
+                threw = true;
+            }
+            Assert.IsTrue(threw);
+        }
+
+        [TestMethod]
         public void SignTextReadsAndWritesModernFrontText()
         {
             TileEntitySign sign = new TileEntitySign();

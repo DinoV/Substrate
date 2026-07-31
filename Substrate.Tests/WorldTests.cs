@@ -262,6 +262,53 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void SetBlockByNameUsesPaletteOrLegacyIdAndData()
+        {
+            NbtWorld modernWorld = NbtWorld.Open(@"..\..\Data\26_2-creative\");
+            BlockManager modern = modernWorld.GetBlockManager() as BlockManager;
+            Assert.IsNotNull(modern);
+            modern.SetBlock(79, 63, 249, AcquaticBlocks.LeafLitter);
+            Assert.AreEqual(
+                AcquaticBlocks.LeafLitter, modern.GetStringID(79, 63, 249));
+            modern.SetBlock(
+                79, 64, 249, AcquaticBlocks.OakWallSign,
+                facing: BlockFacing.East);
+            Assert.AreEqual(
+                AcquaticBlocks.OakWallSign, modern.GetStringID(79, 64, 249));
+            Assert.AreEqual("east",
+                modern.GetBlockProperty(
+                    79, 64, 249, BlockProperties.Facing));
+            Assert.IsNull(modern.GetBlockProperty(
+                79, 64, 249, BlockProperties.Waterlogged));
+
+            NbtWorld legacyWorld = NbtWorld.Open(@"..\..\Data\1_7_10-creative\");
+            BlockManager legacy = legacyWorld.GetBlockManager() as BlockManager;
+            Assert.IsNotNull(legacy);
+            int x = legacyWorld.Level.Spawn.X;
+            int y = legacyWorld.Level.Spawn.Y;
+            int z = legacyWorld.Level.Spawn.Z;
+            legacy.SetBlock(x, y, z, AcquaticBlocks.BlueStainedGlass);
+            Assert.AreEqual(BlockType.STAINED_GLASS, legacy.GetID(x, y, z));
+            Assert.AreEqual(11, legacy.GetData(x, y, z));
+
+            legacy.SetBlock(
+                x, y + 1, z, AcquaticBlocks.AcaciaLog,
+                axis: BlockAxis.X);
+            Assert.AreEqual(
+                BlockInfo.AcaciaWood.ID, legacy.GetID(x, y + 1, z));
+            Assert.AreEqual(4, legacy.GetData(x, y + 1, z));
+
+            bool threw = false;
+            try {
+                legacy.SetBlock(x, y, z, AcquaticBlocks.LeafLitter);
+            }
+            catch (ArgumentException) {
+                threw = true;
+            }
+            Assert.IsTrue(threw);
+        }
+
+        [TestMethod]
         public void OpenTest_1_8_3_survival()
         {
             NbtWorld world = NbtWorld.Open(@"..\..\Data\1_8_3-survival\");

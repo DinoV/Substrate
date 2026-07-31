@@ -1,5 +1,31 @@
 namespace Substrate
 {
+    public enum BlockFacing { Down, Up, North, South, West, East }
+    public enum BlockAxis { X, Y, Z }
+    public enum BlockHalf { Top, Bottom, Upper, Lower }
+    public enum BlockHinge { Left, Right }
+    public enum BlockFace { Floor, Wall, Ceiling }
+    public enum BlockSlabType { Top, Bottom, Double }
+    public enum BlockStairShape
+    {
+        Straight, InnerLeft, InnerRight, OuterLeft, OuterRight
+    }
+    public enum BlockAttachment
+    {
+        Floor, Ceiling, SingleWall, DoubleWall
+    }
+    public enum BlockChestType { Single, Left, Right }
+    public enum BlockBedPart { Head, Foot }
+    public enum BlockComparatorMode { Compare, Subtract }
+    public enum BlockBambooLeaves { None, Small, Large }
+    public enum BlockSculkSensorPhase { Inactive, Active, Cooldown }
+    public enum BlockVerticalDirection { Up, Down }
+    public enum BlockThickness
+    {
+        Tip, TipMerge, Frustum, Middle, Base
+    }
+    public enum BlockTilt { None, Unstable, Partial, Full }
+
     /// <summary>Block-state property keys available in Minecraft Java Edition 26.2.</summary>
     public static class BlockProperties
     {

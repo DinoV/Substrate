@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Substrate.Core;
 using Substrate.Nbt;
 
@@ -247,6 +248,316 @@ namespace Substrate
             cache.Blocks.SetBlock(x & chunkXMask, LocalY(y), z & chunkZMask, block);
         }
 
+        /// <summary>
+        /// Sets a block by its namespaced identifier.
+        /// </summary>
+        /// <remarks>
+        /// Palette-backed Aquatic chunks store the name directly. Older chunks
+        /// convert it to the corresponding numeric ID and metadata value.
+        /// </remarks>
+        public void SetBlock (int x, int y, int z, string name)
+        {
+            SetBlock(x, y, z, name, (TagNodeCompound)null);
+        }
+
+        /// <summary>
+        /// Sets a block by its namespaced identifier and block-state
+        /// properties.
+        /// </summary>
+        /// <remarks>
+        /// Palette-backed Aquatic chunks store the complete state directly.
+        /// Older chunks require an exact ID and metadata representation.
+        /// </remarks>
+        public void SetBlock (
+            int x, int y, int z, string name, TagNodeCompound properties)
+        {
+            if (name == null)
+                throw new ArgumentNullException("name");
+            if (!BlockInfo.BlockNameTable.ContainsKey(name))
+                throw new ArgumentException(
+                    "Unknown block identifier: " + name, "name");
+
+            cache = GetChunk(x, y, z);
+            if (cache == null || !Check(x, y, z))
+                return;
+
+            int localX = x & chunkXMask;
+            int localZ = z & chunkZMask;
+            if (cache.GetBlockName(localX, y, localZ) != null) {
+                BlockInfo modernInfo = BlockInfo.BlockNameTable[name];
+                SetID(x, y, z, modernInfo.ID);
+                cache = GetChunk(x, y, z);
+                cache.SetBlockState(localX, y, localZ, name, properties);
+                UpdateDerivedConnections(x, y, z);
+                return;
+            }
+
+            int id;
+            int data;
+            BlockInfo.GetLegacyBlockState(
+                name, properties, out id, out data);
+            SetID(x, y, z, id, data);
+        }
+
+        /// <summary>Sets a directional block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name, BlockFacing facing)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a directional, waterloggable block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockFacing facing, bool waterlogged)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddBooleanProperty(
+                properties, BlockProperties.Waterlogged, waterlogged);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a log, pillar, or other axis-oriented block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name, BlockAxis axis)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Axis, axis);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a waterloggable slab.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockSlabType type, bool waterlogged)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Type, type);
+            AddBooleanProperty(
+                properties, BlockProperties.Waterlogged, waterlogged);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a stair block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockFacing facing, BlockHalf half,
+            BlockStairShape shape, bool waterlogged)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddEnumProperty(properties, BlockProperties.Half, half);
+            AddEnumProperty(properties, BlockProperties.Shape, shape);
+            AddBooleanProperty(
+                properties, BlockProperties.Waterlogged, waterlogged);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a door block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockFacing facing, BlockHalf half, BlockHinge hinge,
+            bool open, bool powered)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddEnumProperty(properties, BlockProperties.Half, half);
+            AddEnumProperty(properties, BlockProperties.Hinge, hinge);
+            AddBooleanProperty(properties, BlockProperties.Open, open);
+            AddBooleanProperty(properties, BlockProperties.Powered, powered);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a trapdoor, button, or lever-style block.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockFacing facing, BlockHalf half,
+            bool open, bool powered, bool waterlogged)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddEnumProperty(properties, BlockProperties.Half, half);
+            AddBooleanProperty(properties, BlockProperties.Open, open);
+            AddBooleanProperty(properties, BlockProperties.Powered, powered);
+            AddBooleanProperty(
+                properties, BlockProperties.Waterlogged, waterlogged);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>Sets a fence gate.</summary>
+        public void SetBlock (
+            int x, int y, int z, string name,
+            BlockFacing facing, bool open, bool powered, bool inWall)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddBooleanProperty(properties, BlockProperties.Open, open);
+            AddBooleanProperty(properties, BlockProperties.Powered, powered);
+            AddBooleanProperty(properties, BlockProperties.InWall, inWall);
+            SetBlock(x, y, z, name, properties);
+        }
+
+        /// <summary>
+        /// Sets a block using commonly authored block-state properties.
+        /// Nullable values that are not supplied are omitted from the state.
+        /// </summary>
+        public void SetBlock (
+            int x,
+            int y,
+            int z,
+            string name,
+            BlockFacing? facing = null,
+            BlockAxis? axis = null,
+            BlockHalf? half = null,
+            BlockHinge? hinge = null,
+            BlockFace? face = null,
+            BlockSlabType? type = null,
+            BlockStairShape? shape = null,
+            BlockAttachment? attachment = null,
+            BlockChestType? chestType = null,
+            BlockBedPart? part = null,
+            BlockComparatorMode? mode = null,
+            BlockBambooLeaves? leaves = null,
+            BlockSculkSensorPhase? sculkSensorPhase = null,
+            BlockVerticalDirection? verticalDirection = null,
+            BlockThickness? thickness = null,
+            BlockTilt? tilt = null,
+            bool? waterlogged = null,
+            bool? powered = null,
+            bool? open = null,
+            bool? lit = null,
+            bool? attached = null,
+            bool? enabled = null,
+            bool? extended = null,
+            bool? occupied = null,
+            bool? persistent = null,
+            bool? snowy = null,
+            bool? hanging = null,
+            bool? inWall = null,
+            bool? locked = null,
+            bool? conditional = null,
+            bool? triggered = null,
+            bool? unstable = null,
+            bool? berries = null,
+            bool? bottom = null,
+            bool? up = null,
+            bool? down = null,
+            bool? north = null,
+            bool? east = null,
+            bool? south = null,
+            bool? west = null,
+            int? age = null,
+            int? level = null,
+            int? power = null,
+            int? rotation = null,
+            int? distance = null,
+            int? layers = null,
+            int? stage = null,
+            int? moisture = null,
+            int? delay = null)
+        {
+            TagNodeCompound properties = new TagNodeCompound();
+            AddEnumProperty(properties, BlockProperties.Facing, facing);
+            AddEnumProperty(properties, BlockProperties.Axis, axis);
+            AddEnumProperty(properties, BlockProperties.Half, half);
+            AddEnumProperty(properties, BlockProperties.Hinge, hinge);
+            AddEnumProperty(properties, BlockProperties.Face, face);
+            AddEnumProperty(properties, BlockProperties.Type, type);
+            AddEnumProperty(properties, BlockProperties.Shape, shape);
+            AddEnumProperty(properties, BlockProperties.Attachment, attachment);
+            AddEnumProperty(properties, BlockProperties.Type, chestType);
+            AddEnumProperty(properties, BlockProperties.Part, part);
+            AddEnumProperty(properties, BlockProperties.Mode, mode);
+            AddEnumProperty(properties, BlockProperties.Leaves, leaves);
+            AddEnumProperty(properties,
+                BlockProperties.SculkSensorPhase, sculkSensorPhase);
+            AddEnumProperty(properties,
+                BlockProperties.VerticalDirection, verticalDirection);
+            AddEnumProperty(properties, BlockProperties.Thickness, thickness);
+            AddEnumProperty(properties, BlockProperties.Tilt, tilt);
+
+            AddBooleanProperty(properties, BlockProperties.Waterlogged, waterlogged);
+            AddBooleanProperty(properties, BlockProperties.Powered, powered);
+            AddBooleanProperty(properties, BlockProperties.Open, open);
+            AddBooleanProperty(properties, BlockProperties.Lit, lit);
+            AddBooleanProperty(properties, BlockProperties.Attached, attached);
+            AddBooleanProperty(properties, BlockProperties.Enabled, enabled);
+            AddBooleanProperty(properties, BlockProperties.Extended, extended);
+            AddBooleanProperty(properties, BlockProperties.Occupied, occupied);
+            AddBooleanProperty(properties, BlockProperties.Persistent, persistent);
+            AddBooleanProperty(properties, BlockProperties.Snowy, snowy);
+            AddBooleanProperty(properties, BlockProperties.Hanging, hanging);
+            AddBooleanProperty(properties, BlockProperties.InWall, inWall);
+            AddBooleanProperty(properties, BlockProperties.Locked, locked);
+            AddBooleanProperty(properties, BlockProperties.Conditional, conditional);
+            AddBooleanProperty(properties, BlockProperties.Triggered, triggered);
+            AddBooleanProperty(properties, BlockProperties.Unstable, unstable);
+            AddBooleanProperty(properties, BlockProperties.Berries, berries);
+            AddBooleanProperty(properties, BlockProperties.Bottom, bottom);
+            AddBooleanProperty(properties, BlockProperties.Up, up);
+            AddBooleanProperty(properties, BlockProperties.Down, down);
+            AddBooleanProperty(properties, BlockProperties.North, north);
+            AddBooleanProperty(properties, BlockProperties.East, east);
+            AddBooleanProperty(properties, BlockProperties.South, south);
+            AddBooleanProperty(properties, BlockProperties.West, west);
+
+            AddIntegerProperty(properties, BlockProperties.Age, age);
+            AddIntegerProperty(properties, BlockProperties.Level, level);
+            AddIntegerProperty(properties, BlockProperties.Power, power);
+            AddIntegerProperty(properties, BlockProperties.Rotation, rotation);
+            AddIntegerProperty(properties, BlockProperties.Distance, distance);
+            AddIntegerProperty(properties, BlockProperties.Layers, layers);
+            AddIntegerProperty(properties, BlockProperties.Stage, stage);
+            AddIntegerProperty(properties, BlockProperties.Moisture, moisture);
+            AddIntegerProperty(properties, BlockProperties.Delay, delay);
+
+            SetBlock(x, y, z, name, properties);
+        }
+
+        private static void AddBooleanProperty(
+            TagNodeCompound properties, string name, bool? value)
+        {
+            if (value.HasValue)
+                properties[name] = new TagNodeString(
+                    value.Value ? "true" : "false");
+        }
+
+        private static void AddIntegerProperty(
+            TagNodeCompound properties, string name, int? value)
+        {
+            if (value.HasValue)
+                properties[name] = new TagNodeString(
+                    value.Value.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        private static void AddEnumProperty<T>(
+            TagNodeCompound properties, string name, T value)
+            where T : struct
+        {
+            AddEnumProperty<T>(properties, name, new Nullable<T>(value));
+        }
+
+        private static void AddEnumProperty<T>(
+            TagNodeCompound properties, string name, T? value)
+            where T : struct
+        {
+            if (!value.HasValue)
+                return;
+            string source = value.Value.ToString();
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < source.Length; i++) {
+                char c = source[i];
+                if (i > 0 && Char.IsUpper(c))
+                    result.Append('_');
+                result.Append(Char.ToLowerInvariant(c));
+            }
+            properties[name] = new TagNodeString(result.ToString());
+        }
+
         /// <inheritdoc/>
         public BlockInfo GetInfo (int x, int y, int z)
         {
@@ -363,10 +674,7 @@ namespace Substrate
 
         /// <inheritdoc/>
         public void SetStringID(int x, int y, int z, string id) {
-            BlockInfo info;
-            if (!BlockInfo.BlockNameTable.TryGetValue(id, out info))
-                throw new ArgumentException("Unknown block identifier: " + id, "id");
-            SetID(x, y, z, info.ID);
+            SetBlock(x, y, z, id);
         }
 
         #endregion
