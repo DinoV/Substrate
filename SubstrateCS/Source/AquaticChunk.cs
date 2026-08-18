@@ -411,7 +411,9 @@ namespace Substrate
             _cx = level["xPos"].ToTagInt();
             _cz = level["zPos"].ToTagInt();
 
-            _blockManager = new AlphaBlockCollection(_blocks, _data, _blockLight, _skyLight, _heightMap, _tileEntities, _tileTicks);
+            _blockManager = new AlphaBlockCollection(
+                _blocks, _data, _blockLight, _skyLight, _heightMap,
+                _tileEntities, _tileTicks, MinimumY);
             if (rebuildHeightMap)
                 RebuildHeightMap();
             _entityManager = new EntityCollection(_entities);

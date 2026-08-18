@@ -89,6 +89,8 @@ namespace Substrate.Tests
             Assert.AreEqual(384, chunk.Blocks.YDim);
             Assert.AreEqual(BlockType.STONE, chunk.Blocks.GetID(0, 0, 0));
             Assert.AreEqual(BlockType.STONE, chunk.GetBlockID(0, -64, 0));
+            chunk.Blocks.SetID(1, 127, 1, BlockType.STONE);
+            Assert.AreEqual(64, chunk.Blocks.GetHeight(1, 1));
             Assert.IsTrue(chunk.IsTerrainPopulated);
             TagNodeCompound properties = Properties("variant", "potent");
             chunk.SetBlockState(1, 319, 2, "minecraft:potent_sulfur", properties);
