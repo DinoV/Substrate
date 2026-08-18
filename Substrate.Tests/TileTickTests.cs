@@ -16,8 +16,9 @@ namespace Substrate.Tests
             Assert.IsNotNull(tick);
             Assert.AreEqual(BlockType.LAVA, tick.ID);
             Assert.AreEqual("minecraft:flowing_lava", tick.StringID);
-            Assert.AreEqual(TagType.TAG_STRING, tick.BuildTree()["i"].GetTagType());
-            Assert.AreEqual("minecraft:flowing_lava", tick.BuildTree()["i"].ToTagString().Data);
+            TagNodeCompound result = tick.BuildTree().ToTagCompound();
+            Assert.AreEqual(TagType.TAG_STRING, result["i"].GetTagType());
+            Assert.AreEqual("minecraft:flowing_lava", result["i"].ToTagString().Data);
         }
 
         [TestMethod]
@@ -30,7 +31,7 @@ namespace Substrate.Tests
             Assert.IsNotNull(tick);
             Assert.AreEqual(BlockType.LAVA, tick.ID);
             Assert.IsNull(tick.StringID);
-            Assert.AreEqual(TagType.TAG_INT, tick.BuildTree()["i"].GetTagType());
+            Assert.AreEqual(TagType.TAG_INT, tick.BuildTree().ToTagCompound()["i"].GetTagType());
         }
 
         private static TagNodeCompound CreateTick(TagNode id)
