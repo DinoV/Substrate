@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Remove="Examples\**\*.cs" />
+    <Compile Remove="Vendor\DotNetZip\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

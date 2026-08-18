@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
-using Ionic.Zlib;
 
 namespace Substrate.Core
 {
@@ -153,7 +153,7 @@ namespace Substrate.Core
                     file.Seek(0, SeekOrigin.Begin);
                     for (int i = 0; i < SectorInts; ++i) {
                         byte[] offsetBytes = new byte[4];
-                        file.Read(offsetBytes, 0, 4);
+                        file.ReadExactly(offsetBytes);
 
                         if (BitConverter.IsLittleEndian) {
                             Array.Reverse(offsetBytes);
@@ -169,7 +169,7 @@ namespace Substrate.Core
                     }
                     for (int i = 0; i < SectorInts; ++i) {
                         byte[] modBytes = new byte[4];
-                        file.Read(modBytes, 0, 4);
+                        file.ReadExactly(modBytes);
 
                         if (BitConverter.IsLittleEndian) {
                             Array.Reverse(modBytes);
@@ -260,7 +260,7 @@ namespace Substrate.Core
 
                     file.Seek(sectorNumber * SectorBytes, SeekOrigin.Begin);
                     byte[] lengthBytes = new byte[4];
-                    file.Read(lengthBytes, 0, 4);
+                    file.ReadExactly(lengthBytes);
 
                     if (BitConverter.IsLittleEndian) {
                         Array.Reverse(lengthBytes);
@@ -282,7 +282,7 @@ namespace Substrate.Core
                         data = File.ReadAllBytes(externalPath);
                     } else {
                         data = new byte[length - 1];
-                        file.Read(data, 0, data.Length);
+                        file.ReadExactly(data);
                     }
                     if (version == VERSION_GZIP) {
                         Stream ret = new GZipStream(new MemoryStream(data), CompressionMode.Decompress);
@@ -290,7 +290,7 @@ namespace Substrate.Core
                         return ret;
                     }
                     else if (version == VERSION_DEFLATE) {
-                        Stream ret = new ZlibStream(new MemoryStream(data), CompressionMode.Decompress, true);
+                        Stream ret = new ZLibStream(new MemoryStream(data), CompressionMode.Decompress, true);
                         return ret;
 
                         /*MemoryStream sinkZ = new MemoryStream();
@@ -317,14 +317,14 @@ namespace Substrate.Core
         {
             if (OutOfBounds(x, z)) return null;
 
-            return new ZlibStream(new ChunkBuffer(this, x, z), CompressionMode.Compress);
+            return new ZLibStream(new ChunkBuffer(this, x, z), CompressionMode.Compress);
         }
 
         public Stream GetChunkDataOutputStream (int x, int z, int timestamp)
         {
             if (OutOfBounds(x, z)) return null;
 
-            return new ZlibStream(new ChunkBuffer(this, x, z, timestamp), CompressionMode.Compress);
+            return new ZLibStream(new ChunkBuffer(this, x, z, timestamp), CompressionMode.Compress);
         }
 
         /*
