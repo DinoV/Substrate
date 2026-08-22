@@ -383,7 +383,10 @@ namespace Substrate
             if (_entities == null) _entities = new TagNodeList(TagType.TAG_COMPOUND);
             level.TryGetValue(tileEntitiesKey, out optionalNode);
             _tileEntities = optionalNode as TagNodeList;
-            if (_tileEntities == null) _tileEntities = new TagNodeList(TagType.TAG_COMPOUND);
+            if (_tileEntities == null) {
+                _tileEntities = new TagNodeList(TagType.TAG_COMPOUND);
+                level[tileEntitiesKey] = _tileEntities;
+            }
 
             if (!_modern && level.ContainsKey("TileTicks"))
                 _tileTicks = level["TileTicks"] as TagNodeList;

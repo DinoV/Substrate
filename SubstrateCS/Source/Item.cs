@@ -216,6 +216,16 @@ namespace Substrate
             return tree;
         }
 
+        /// <summary>Builds the component-era item stack format used by current Java worlds.</summary>
+        public TagNode BuildModernTree ()
+        {
+            TagNodeCompound tree = new TagNodeCompound();
+            tree["id"] = new TagNodeString(_id);
+            tree["count"] = new TagNodeInt(_count);
+            tree["components"] = new TagNodeCompound();
+            return tree;
+        }
+
         /// <inheritdoc/>
         public bool ValidateTree (TagNode tree)
         {
