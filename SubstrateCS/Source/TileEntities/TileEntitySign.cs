@@ -22,6 +22,11 @@ namespace Substrate.TileEntities
             get { return "minecraft:sign"; }
         }
 
+        public static string HangingTypeId
+        {
+            get { return "minecraft:hanging_sign"; }
+        }
+
         private string _text1 = "";
         private string _text2 = "";
         private string _text3 = "";
@@ -51,7 +56,7 @@ namespace Substrate.TileEntities
             set { _text4 = value; }
         }
 
-        protected TileEntitySign (string id)
+        public TileEntitySign (string id)
             : base(id)
         {
             Text1 = Text2 = Text3 = Text4 = "{\"text\":\"\"}";
