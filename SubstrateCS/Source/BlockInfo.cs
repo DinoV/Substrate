@@ -373,12 +373,12 @@ namespace Substrate
         public static IList<BlockInfo> AquaticBlocks { get; private set; }
 
         /// <summary>
-        /// Gets every vanilla block type available through Minecraft Java Edition 26.2.
+        /// Gets every vanilla block type available through Minecraft Java Edition 26.3.
         /// </summary>
         public static IList<BlockInfo> ModernBlocks { get; private set; }
 
         /// <summary>The Minecraft version used to generate <see cref="ModernBlocks"/>.</summary>
-        public const string ModernBlockRegistryVersion = "26.2";
+        public const string ModernBlockRegistryVersion = "26.3";
 
         /// <summary>
         /// Gets the lookup table for id-to-opacity values.
@@ -577,9 +577,9 @@ namespace Substrate
             RegisterRenamedBlockAliases();
             List<BlockInfo> blocks = new List<BlockInfo>();
             Assembly assembly = Assembly.GetExecutingAssembly();
-            using (Stream stream = assembly.GetManifestResourceStream("Substrate.Data.BlockRegistry-26.2.txt")) {
+            using (Stream stream = assembly.GetManifestResourceStream("Substrate.Data.BlockRegistry-26.3.txt")) {
                 if (stream == null)
-                    throw new InvalidOperationException("The embedded Minecraft 26.2 block registry is missing.");
+                    throw new InvalidOperationException("The embedded Minecraft 26.3 block registry is missing.");
 
                 using (StreamReader reader = new StreamReader(stream)) {
                     string stringId;

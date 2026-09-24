@@ -324,10 +324,10 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
-        public void BlockInfoRegistersCompleteMinecraft262Registry()
+        public void BlockInfoRegistersCompleteMinecraft263Registry()
         {
-            Assert.AreEqual("26.2", BlockInfo.ModernBlockRegistryVersion);
-            Assert.AreEqual(1196, BlockInfo.ModernBlocks.Count);
+            Assert.AreEqual("26.3", BlockInfo.ModernBlockRegistryVersion);
+            Assert.AreEqual(1288, BlockInfo.ModernBlocks.Count);
 
             HashSet<BlockInfo> registrations = new HashSet<BlockInfo>();
             foreach (BlockInfo info in BlockInfo.ModernBlocks) {
@@ -341,6 +341,13 @@ namespace Substrate.Tests
             Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:creaking_heart"));
             Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:potent_sulfur"));
             Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:chiseled_cinnabar"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:poplar_log"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:red_poplar_leaves"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:white_concrete_stairs"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:black_wool_slab"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:straw_bed"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:item_frame"));
+            Assert.IsTrue(BlockInfo.BlockNameTable.ContainsKey("minecraft:glow_item_frame"));
         }
 
         [TestMethod]
@@ -543,12 +550,26 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
-        public void Minecraft262ConstantsCoverBlocksAndProperties()
+        public void Minecraft263ConstantsCoverBlocksAndProperties()
         {
-            Assert.AreEqual(1196, typeof(AcquaticBlocks).GetFields().Length);
+            Assert.AreEqual(1288, typeof(AcquaticBlocks).GetFields().Length);
+            HashSet<string> constantValues = new HashSet<string>();
+            foreach (System.Reflection.FieldInfo field in typeof(AcquaticBlocks).GetFields())
+                Assert.IsTrue(constantValues.Add((string)field.GetValue(null)), field.Name);
+            foreach (string blockName in constantValues) {
+                BlockInfo block;
+                Assert.IsTrue(BlockInfo.BlockNameTable.TryGetValue(blockName, out block), blockName);
+                Assert.IsTrue(BlockInfo.ModernBlocks.Contains(block), blockName);
+            }
+
             Assert.AreEqual("minecraft:air", AcquaticBlocks.Air);
             Assert.AreEqual("minecraft:leaf_litter", AcquaticBlocks.LeafLitter);
             Assert.AreEqual("minecraft:potent_sulfur", AcquaticBlocks.PotentSulfur);
+            Assert.AreEqual("minecraft:poplar_log", AcquaticBlocks.PoplarLog);
+            Assert.AreEqual("minecraft:red_poplar_leaves", AcquaticBlocks.RedPoplarLeaves);
+            Assert.AreEqual("minecraft:white_concrete_stairs", AcquaticBlocks.WhiteConcreteStairs);
+            Assert.AreEqual("minecraft:black_wool_slab", AcquaticBlocks.BlackWoolSlab);
+            Assert.AreEqual("minecraft:straw_bed", AcquaticBlocks.StrawBed);
 
             Assert.AreEqual(93, typeof(BlockProperties).GetFields().Length);
             Assert.AreEqual("facing", BlockProperties.Facing);

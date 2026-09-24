@@ -14,10 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Source\Data\BlockRegistry-26.2.txt" />
+    <None Remove="Source\Data\BlockRegistry-26.3.txt" />
     <None Remove="Source\Data\LegacyBlockStates.txt" />
-    <EmbeddedResource Include="Source\Data\BlockRegistry-26.2.txt">
-      <LogicalName>Substrate.Data.BlockRegistry-26.2.txt</LogicalName>
+    <EmbeddedResource Include="Source\Data\BlockRegistry-26.3.txt">
+      <LogicalName>Substrate.Data.BlockRegistry-26.3.txt</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="Source\Data\LegacyBlockStates.txt">
       <LogicalName>Substrate.Data.LegacyBlockStates.txt</LogicalName>

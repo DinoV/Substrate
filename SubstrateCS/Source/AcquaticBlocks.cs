@@ -1,6 +1,6 @@
 namespace Substrate
 {
-    /// <summary>Namespaced identifiers for every block in Minecraft Java Edition 26.2.</summary>
+    /// <summary>Namespaced identifiers for every block in Minecraft Java Edition 26.3.</summary>
     public static class AcquaticBlocks
     {
         public const string AcaciaButton = "minecraft:acacia_button";
@@ -93,6 +93,8 @@ namespace Substrate
         public const string BlackCarpet = "minecraft:black_carpet";
         public const string BlackConcrete = "minecraft:black_concrete";
         public const string BlackConcretePowder = "minecraft:black_concrete_powder";
+        public const string BlackConcreteSlab = "minecraft:black_concrete_slab";
+        public const string BlackConcreteStairs = "minecraft:black_concrete_stairs";
         public const string BlackGlazedTerracotta = "minecraft:black_glazed_terracotta";
         public const string BlackShulkerBox = "minecraft:black_shulker_box";
         public const string BlackStainedGlass = "minecraft:black_stained_glass";
@@ -100,6 +102,8 @@ namespace Substrate
         public const string BlackTerracotta = "minecraft:black_terracotta";
         public const string BlackWallBanner = "minecraft:black_wall_banner";
         public const string BlackWool = "minecraft:black_wool";
+        public const string BlackWoolSlab = "minecraft:black_wool_slab";
+        public const string BlackWoolStairs = "minecraft:black_wool_stairs";
         public const string Blackstone = "minecraft:blackstone";
         public const string BlackstoneSlab = "minecraft:blackstone_slab";
         public const string BlackstoneStairs = "minecraft:blackstone_stairs";
@@ -112,6 +116,8 @@ namespace Substrate
         public const string BlueCarpet = "minecraft:blue_carpet";
         public const string BlueConcrete = "minecraft:blue_concrete";
         public const string BlueConcretePowder = "minecraft:blue_concrete_powder";
+        public const string BlueConcreteSlab = "minecraft:blue_concrete_slab";
+        public const string BlueConcreteStairs = "minecraft:blue_concrete_stairs";
         public const string BlueGlazedTerracotta = "minecraft:blue_glazed_terracotta";
         public const string BlueIce = "minecraft:blue_ice";
         public const string BlueOrchid = "minecraft:blue_orchid";
@@ -121,6 +127,8 @@ namespace Substrate
         public const string BlueTerracotta = "minecraft:blue_terracotta";
         public const string BlueWallBanner = "minecraft:blue_wall_banner";
         public const string BlueWool = "minecraft:blue_wool";
+        public const string BlueWoolSlab = "minecraft:blue_wool_slab";
+        public const string BlueWoolStairs = "minecraft:blue_wool_stairs";
         public const string BoneBlock = "minecraft:bone_block";
         public const string Bookshelf = "minecraft:bookshelf";
         public const string BrainCoral = "minecraft:brain_coral";
@@ -139,6 +147,8 @@ namespace Substrate
         public const string BrownCarpet = "minecraft:brown_carpet";
         public const string BrownConcrete = "minecraft:brown_concrete";
         public const string BrownConcretePowder = "minecraft:brown_concrete_powder";
+        public const string BrownConcreteSlab = "minecraft:brown_concrete_slab";
+        public const string BrownConcreteStairs = "minecraft:brown_concrete_stairs";
         public const string BrownGlazedTerracotta = "minecraft:brown_glazed_terracotta";
         public const string BrownMushroom = "minecraft:brown_mushroom";
         public const string BrownMushroomBlock = "minecraft:brown_mushroom_block";
@@ -148,6 +158,8 @@ namespace Substrate
         public const string BrownTerracotta = "minecraft:brown_terracotta";
         public const string BrownWallBanner = "minecraft:brown_wall_banner";
         public const string BrownWool = "minecraft:brown_wool";
+        public const string BrownWoolSlab = "minecraft:brown_wool_slab";
+        public const string BrownWoolStairs = "minecraft:brown_wool_stairs";
         public const string BubbleColumn = "minecraft:bubble_column";
         public const string BubbleCoral = "minecraft:bubble_coral";
         public const string BubbleCoralBlock = "minecraft:bubble_coral_block";
@@ -292,6 +304,8 @@ namespace Substrate
         public const string CyanCarpet = "minecraft:cyan_carpet";
         public const string CyanConcrete = "minecraft:cyan_concrete";
         public const string CyanConcretePowder = "minecraft:cyan_concrete_powder";
+        public const string CyanConcreteSlab = "minecraft:cyan_concrete_slab";
+        public const string CyanConcreteStairs = "minecraft:cyan_concrete_stairs";
         public const string CyanGlazedTerracotta = "minecraft:cyan_glazed_terracotta";
         public const string CyanShulkerBox = "minecraft:cyan_shulker_box";
         public const string CyanStainedGlass = "minecraft:cyan_stained_glass";
@@ -299,6 +313,8 @@ namespace Substrate
         public const string CyanTerracotta = "minecraft:cyan_terracotta";
         public const string CyanWallBanner = "minecraft:cyan_wall_banner";
         public const string CyanWool = "minecraft:cyan_wool";
+        public const string CyanWoolSlab = "minecraft:cyan_wool_slab";
+        public const string CyanWoolStairs = "minecraft:cyan_wool_stairs";
         public const string DamagedAnvil = "minecraft:damaged_anvil";
         public const string Dandelion = "minecraft:dandelion";
         public const string DarkOakButton = "minecraft:dark_oak_button";
@@ -425,6 +441,7 @@ namespace Substrate
         public const string GildedBlackstone = "minecraft:gilded_blackstone";
         public const string Glass = "minecraft:glass";
         public const string GlassPane = "minecraft:glass_pane";
+        public const string GlowItemFrame = "minecraft:glow_item_frame";
         public const string GlowLichen = "minecraft:glow_lichen";
         public const string Glowstone = "minecraft:glowstone";
         public const string GoldBlock = "minecraft:gold_block";
@@ -443,6 +460,8 @@ namespace Substrate
         public const string GrayCarpet = "minecraft:gray_carpet";
         public const string GrayConcrete = "minecraft:gray_concrete";
         public const string GrayConcretePowder = "minecraft:gray_concrete_powder";
+        public const string GrayConcreteSlab = "minecraft:gray_concrete_slab";
+        public const string GrayConcreteStairs = "minecraft:gray_concrete_stairs";
         public const string GrayGlazedTerracotta = "minecraft:gray_glazed_terracotta";
         public const string GrayShulkerBox = "minecraft:gray_shulker_box";
         public const string GrayStainedGlass = "minecraft:gray_stained_glass";
@@ -450,6 +469,8 @@ namespace Substrate
         public const string GrayTerracotta = "minecraft:gray_terracotta";
         public const string GrayWallBanner = "minecraft:gray_wall_banner";
         public const string GrayWool = "minecraft:gray_wool";
+        public const string GrayWoolSlab = "minecraft:gray_wool_slab";
+        public const string GrayWoolStairs = "minecraft:gray_wool_stairs";
         public const string GreenBanner = "minecraft:green_banner";
         public const string GreenBed = "minecraft:green_bed";
         public const string GreenCandle = "minecraft:green_candle";
@@ -457,6 +478,8 @@ namespace Substrate
         public const string GreenCarpet = "minecraft:green_carpet";
         public const string GreenConcrete = "minecraft:green_concrete";
         public const string GreenConcretePowder = "minecraft:green_concrete_powder";
+        public const string GreenConcreteSlab = "minecraft:green_concrete_slab";
+        public const string GreenConcreteStairs = "minecraft:green_concrete_stairs";
         public const string GreenGlazedTerracotta = "minecraft:green_glazed_terracotta";
         public const string GreenShulkerBox = "minecraft:green_shulker_box";
         public const string GreenStainedGlass = "minecraft:green_stained_glass";
@@ -464,6 +487,8 @@ namespace Substrate
         public const string GreenTerracotta = "minecraft:green_terracotta";
         public const string GreenWallBanner = "minecraft:green_wall_banner";
         public const string GreenWool = "minecraft:green_wool";
+        public const string GreenWoolSlab = "minecraft:green_wool_slab";
+        public const string GreenWoolStairs = "minecraft:green_wool_stairs";
         public const string Grindstone = "minecraft:grindstone";
         public const string HangingRoots = "minecraft:hanging_roots";
         public const string HayBlock = "minecraft:hay_block";
@@ -490,6 +515,7 @@ namespace Substrate
         public const string IronDoor = "minecraft:iron_door";
         public const string IronOre = "minecraft:iron_ore";
         public const string IronTrapdoor = "minecraft:iron_trapdoor";
+        public const string ItemFrame = "minecraft:item_frame";
         public const string JackOLantern = "minecraft:jack_o_lantern";
         public const string Jigsaw = "minecraft:jigsaw";
         public const string Jukebox = "minecraft:jukebox";
@@ -532,6 +558,8 @@ namespace Substrate
         public const string LightBlueCarpet = "minecraft:light_blue_carpet";
         public const string LightBlueConcrete = "minecraft:light_blue_concrete";
         public const string LightBlueConcretePowder = "minecraft:light_blue_concrete_powder";
+        public const string LightBlueConcreteSlab = "minecraft:light_blue_concrete_slab";
+        public const string LightBlueConcreteStairs = "minecraft:light_blue_concrete_stairs";
         public const string LightBlueGlazedTerracotta = "minecraft:light_blue_glazed_terracotta";
         public const string LightBlueShulkerBox = "minecraft:light_blue_shulker_box";
         public const string LightBlueStainedGlass = "minecraft:light_blue_stained_glass";
@@ -539,6 +567,8 @@ namespace Substrate
         public const string LightBlueTerracotta = "minecraft:light_blue_terracotta";
         public const string LightBlueWallBanner = "minecraft:light_blue_wall_banner";
         public const string LightBlueWool = "minecraft:light_blue_wool";
+        public const string LightBlueWoolSlab = "minecraft:light_blue_wool_slab";
+        public const string LightBlueWoolStairs = "minecraft:light_blue_wool_stairs";
         public const string LightGrayBanner = "minecraft:light_gray_banner";
         public const string LightGrayBed = "minecraft:light_gray_bed";
         public const string LightGrayCandle = "minecraft:light_gray_candle";
@@ -546,6 +576,8 @@ namespace Substrate
         public const string LightGrayCarpet = "minecraft:light_gray_carpet";
         public const string LightGrayConcrete = "minecraft:light_gray_concrete";
         public const string LightGrayConcretePowder = "minecraft:light_gray_concrete_powder";
+        public const string LightGrayConcreteSlab = "minecraft:light_gray_concrete_slab";
+        public const string LightGrayConcreteStairs = "minecraft:light_gray_concrete_stairs";
         public const string LightGrayGlazedTerracotta = "minecraft:light_gray_glazed_terracotta";
         public const string LightGrayShulkerBox = "minecraft:light_gray_shulker_box";
         public const string LightGrayStainedGlass = "minecraft:light_gray_stained_glass";
@@ -553,6 +585,8 @@ namespace Substrate
         public const string LightGrayTerracotta = "minecraft:light_gray_terracotta";
         public const string LightGrayWallBanner = "minecraft:light_gray_wall_banner";
         public const string LightGrayWool = "minecraft:light_gray_wool";
+        public const string LightGrayWoolSlab = "minecraft:light_gray_wool_slab";
+        public const string LightGrayWoolStairs = "minecraft:light_gray_wool_stairs";
         public const string LightWeightedPressurePlate = "minecraft:light_weighted_pressure_plate";
         public const string LightningRod = "minecraft:lightning_rod";
         public const string Lilac = "minecraft:lilac";
@@ -565,6 +599,8 @@ namespace Substrate
         public const string LimeCarpet = "minecraft:lime_carpet";
         public const string LimeConcrete = "minecraft:lime_concrete";
         public const string LimeConcretePowder = "minecraft:lime_concrete_powder";
+        public const string LimeConcreteSlab = "minecraft:lime_concrete_slab";
+        public const string LimeConcreteStairs = "minecraft:lime_concrete_stairs";
         public const string LimeGlazedTerracotta = "minecraft:lime_glazed_terracotta";
         public const string LimeShulkerBox = "minecraft:lime_shulker_box";
         public const string LimeStainedGlass = "minecraft:lime_stained_glass";
@@ -572,6 +608,8 @@ namespace Substrate
         public const string LimeTerracotta = "minecraft:lime_terracotta";
         public const string LimeWallBanner = "minecraft:lime_wall_banner";
         public const string LimeWool = "minecraft:lime_wool";
+        public const string LimeWoolSlab = "minecraft:lime_wool_slab";
+        public const string LimeWoolStairs = "minecraft:lime_wool_stairs";
         public const string Lodestone = "minecraft:lodestone";
         public const string Loom = "minecraft:loom";
         public const string MagentaBanner = "minecraft:magenta_banner";
@@ -581,6 +619,8 @@ namespace Substrate
         public const string MagentaCarpet = "minecraft:magenta_carpet";
         public const string MagentaConcrete = "minecraft:magenta_concrete";
         public const string MagentaConcretePowder = "minecraft:magenta_concrete_powder";
+        public const string MagentaConcreteSlab = "minecraft:magenta_concrete_slab";
+        public const string MagentaConcreteStairs = "minecraft:magenta_concrete_stairs";
         public const string MagentaGlazedTerracotta = "minecraft:magenta_glazed_terracotta";
         public const string MagentaShulkerBox = "minecraft:magenta_shulker_box";
         public const string MagentaStainedGlass = "minecraft:magenta_stained_glass";
@@ -588,6 +628,8 @@ namespace Substrate
         public const string MagentaTerracotta = "minecraft:magenta_terracotta";
         public const string MagentaWallBanner = "minecraft:magenta_wall_banner";
         public const string MagentaWool = "minecraft:magenta_wool";
+        public const string MagentaWoolSlab = "minecraft:magenta_wool_slab";
+        public const string MagentaWoolStairs = "minecraft:magenta_wool_stairs";
         public const string MagmaBlock = "minecraft:magma_block";
         public const string MangroveButton = "minecraft:mangrove_button";
         public const string MangroveDoor = "minecraft:mangrove_door";
@@ -673,7 +715,10 @@ namespace Substrate
         public const string OrangeCarpet = "minecraft:orange_carpet";
         public const string OrangeConcrete = "minecraft:orange_concrete";
         public const string OrangeConcretePowder = "minecraft:orange_concrete_powder";
+        public const string OrangeConcreteSlab = "minecraft:orange_concrete_slab";
+        public const string OrangeConcreteStairs = "minecraft:orange_concrete_stairs";
         public const string OrangeGlazedTerracotta = "minecraft:orange_glazed_terracotta";
+        public const string OrangePoplarLeaves = "minecraft:orange_poplar_leaves";
         public const string OrangeShulkerBox = "minecraft:orange_shulker_box";
         public const string OrangeStainedGlass = "minecraft:orange_stained_glass";
         public const string OrangeStainedGlassPane = "minecraft:orange_stained_glass_pane";
@@ -681,6 +726,8 @@ namespace Substrate
         public const string OrangeTulip = "minecraft:orange_tulip";
         public const string OrangeWallBanner = "minecraft:orange_wall_banner";
         public const string OrangeWool = "minecraft:orange_wool";
+        public const string OrangeWoolSlab = "minecraft:orange_wool_slab";
+        public const string OrangeWoolStairs = "minecraft:orange_wool_stairs";
         public const string OxeyeDaisy = "minecraft:oxeye_daisy";
         public const string OxidizedChiseledCopper = "minecraft:oxidized_chiseled_copper";
         public const string OxidizedCopper = "minecraft:oxidized_copper";
@@ -732,6 +779,8 @@ namespace Substrate
         public const string PinkCarpet = "minecraft:pink_carpet";
         public const string PinkConcrete = "minecraft:pink_concrete";
         public const string PinkConcretePowder = "minecraft:pink_concrete_powder";
+        public const string PinkConcreteSlab = "minecraft:pink_concrete_slab";
+        public const string PinkConcreteStairs = "minecraft:pink_concrete_stairs";
         public const string PinkGlazedTerracotta = "minecraft:pink_glazed_terracotta";
         public const string PinkPetals = "minecraft:pink_petals";
         public const string PinkShulkerBox = "minecraft:pink_shulker_box";
@@ -741,6 +790,8 @@ namespace Substrate
         public const string PinkTulip = "minecraft:pink_tulip";
         public const string PinkWallBanner = "minecraft:pink_wall_banner";
         public const string PinkWool = "minecraft:pink_wool";
+        public const string PinkWoolSlab = "minecraft:pink_wool_slab";
+        public const string PinkWoolStairs = "minecraft:pink_wool_stairs";
         public const string Piston = "minecraft:piston";
         public const string PistonHead = "minecraft:piston_head";
         public const string PitcherCrop = "minecraft:pitcher_crop";
@@ -785,6 +836,23 @@ namespace Substrate
         public const string PolishedTuffSlab = "minecraft:polished_tuff_slab";
         public const string PolishedTuffStairs = "minecraft:polished_tuff_stairs";
         public const string PolishedTuffWall = "minecraft:polished_tuff_wall";
+        public const string PoplarButton = "minecraft:poplar_button";
+        public const string PoplarDoor = "minecraft:poplar_door";
+        public const string PoplarFence = "minecraft:poplar_fence";
+        public const string PoplarFenceGate = "minecraft:poplar_fence_gate";
+        public const string PoplarHangingSign = "minecraft:poplar_hanging_sign";
+        public const string PoplarLog = "minecraft:poplar_log";
+        public const string PoplarPlanks = "minecraft:poplar_planks";
+        public const string PoplarPressurePlate = "minecraft:poplar_pressure_plate";
+        public const string PoplarSapling = "minecraft:poplar_sapling";
+        public const string PoplarShelf = "minecraft:poplar_shelf";
+        public const string PoplarSign = "minecraft:poplar_sign";
+        public const string PoplarSlab = "minecraft:poplar_slab";
+        public const string PoplarStairs = "minecraft:poplar_stairs";
+        public const string PoplarTrapdoor = "minecraft:poplar_trapdoor";
+        public const string PoplarWallHangingSign = "minecraft:poplar_wall_hanging_sign";
+        public const string PoplarWallSign = "minecraft:poplar_wall_sign";
+        public const string PoplarWood = "minecraft:poplar_wood";
         public const string Poppy = "minecraft:poppy";
         public const string Potatoes = "minecraft:potatoes";
         public const string PotentSulfur = "minecraft:potent_sulfur";
@@ -817,6 +885,7 @@ namespace Substrate
         public const string PottedOxeyeDaisy = "minecraft:potted_oxeye_daisy";
         public const string PottedPaleOakSapling = "minecraft:potted_pale_oak_sapling";
         public const string PottedPinkTulip = "minecraft:potted_pink_tulip";
+        public const string PottedPoplarSapling = "minecraft:potted_poplar_sapling";
         public const string PottedPoppy = "minecraft:potted_poppy";
         public const string PottedRedMushroom = "minecraft:potted_red_mushroom";
         public const string PottedRedTulip = "minecraft:potted_red_tulip";
@@ -845,6 +914,8 @@ namespace Substrate
         public const string PurpleCarpet = "minecraft:purple_carpet";
         public const string PurpleConcrete = "minecraft:purple_concrete";
         public const string PurpleConcretePowder = "minecraft:purple_concrete_powder";
+        public const string PurpleConcreteSlab = "minecraft:purple_concrete_slab";
+        public const string PurpleConcreteStairs = "minecraft:purple_concrete_stairs";
         public const string PurpleGlazedTerracotta = "minecraft:purple_glazed_terracotta";
         public const string PurpleShulkerBox = "minecraft:purple_shulker_box";
         public const string PurpleStainedGlass = "minecraft:purple_stained_glass";
@@ -852,6 +923,8 @@ namespace Substrate
         public const string PurpleTerracotta = "minecraft:purple_terracotta";
         public const string PurpleWallBanner = "minecraft:purple_wall_banner";
         public const string PurpleWool = "minecraft:purple_wool";
+        public const string PurpleWoolSlab = "minecraft:purple_wool_slab";
+        public const string PurpleWoolStairs = "minecraft:purple_wool_stairs";
         public const string PurpurBlock = "minecraft:purpur_block";
         public const string PurpurPillar = "minecraft:purpur_pillar";
         public const string PurpurSlab = "minecraft:purpur_slab";
@@ -872,6 +945,8 @@ namespace Substrate
         public const string RedCarpet = "minecraft:red_carpet";
         public const string RedConcrete = "minecraft:red_concrete";
         public const string RedConcretePowder = "minecraft:red_concrete_powder";
+        public const string RedConcreteSlab = "minecraft:red_concrete_slab";
+        public const string RedConcreteStairs = "minecraft:red_concrete_stairs";
         public const string RedGlazedTerracotta = "minecraft:red_glazed_terracotta";
         public const string RedMushroom = "minecraft:red_mushroom";
         public const string RedMushroomBlock = "minecraft:red_mushroom_block";
@@ -879,11 +954,13 @@ namespace Substrate
         public const string RedNetherBrickStairs = "minecraft:red_nether_brick_stairs";
         public const string RedNetherBrickWall = "minecraft:red_nether_brick_wall";
         public const string RedNetherBricks = "minecraft:red_nether_bricks";
+        public const string RedPoplarLeaves = "minecraft:red_poplar_leaves";
         public const string RedSand = "minecraft:red_sand";
         public const string RedSandstone = "minecraft:red_sandstone";
         public const string RedSandstoneSlab = "minecraft:red_sandstone_slab";
         public const string RedSandstoneStairs = "minecraft:red_sandstone_stairs";
         public const string RedSandstoneWall = "minecraft:red_sandstone_wall";
+        public const string RedShrub = "minecraft:red_shrub";
         public const string RedShulkerBox = "minecraft:red_shulker_box";
         public const string RedStainedGlass = "minecraft:red_stained_glass";
         public const string RedStainedGlassPane = "minecraft:red_stained_glass_pane";
@@ -891,6 +968,8 @@ namespace Substrate
         public const string RedTulip = "minecraft:red_tulip";
         public const string RedWallBanner = "minecraft:red_wall_banner";
         public const string RedWool = "minecraft:red_wool";
+        public const string RedWoolSlab = "minecraft:red_wool_slab";
+        public const string RedWoolStairs = "minecraft:red_wool_stairs";
         public const string RedstoneBlock = "minecraft:redstone_block";
         public const string RedstoneLamp = "minecraft:redstone_lamp";
         public const string RedstoneOre = "minecraft:redstone_ore";
@@ -923,6 +1002,7 @@ namespace Substrate
         public const string SeaLantern = "minecraft:sea_lantern";
         public const string SeaPickle = "minecraft:sea_pickle";
         public const string Seagrass = "minecraft:seagrass";
+        public const string ShelfMushroom = "minecraft:shelf_mushroom";
         public const string ShortDryGrass = "minecraft:short_dry_grass";
         public const string ShortGrass = "minecraft:short_grass";
         public const string Shroomlight = "minecraft:shroomlight";
@@ -988,6 +1068,7 @@ namespace Substrate
         public const string StoneSlab = "minecraft:stone_slab";
         public const string StoneStairs = "minecraft:stone_stairs";
         public const string Stonecutter = "minecraft:stonecutter";
+        public const string StrawBed = "minecraft:straw_bed";
         public const string StrippedAcaciaLog = "minecraft:stripped_acacia_log";
         public const string StrippedAcaciaWood = "minecraft:stripped_acacia_wood";
         public const string StrippedBambooBlock = "minecraft:stripped_bamboo_block";
@@ -1007,6 +1088,8 @@ namespace Substrate
         public const string StrippedOakWood = "minecraft:stripped_oak_wood";
         public const string StrippedPaleOakLog = "minecraft:stripped_pale_oak_log";
         public const string StrippedPaleOakWood = "minecraft:stripped_pale_oak_wood";
+        public const string StrippedPoplarLog = "minecraft:stripped_poplar_log";
+        public const string StrippedPoplarWood = "minecraft:stripped_poplar_wood";
         public const string StrippedSpruceLog = "minecraft:stripped_spruce_log";
         public const string StrippedSpruceWood = "minecraft:stripped_spruce_wood";
         public const string StrippedWarpedHyphae = "minecraft:stripped_warped_hyphae";
@@ -1171,6 +1254,8 @@ namespace Substrate
         public const string WhiteCarpet = "minecraft:white_carpet";
         public const string WhiteConcrete = "minecraft:white_concrete";
         public const string WhiteConcretePowder = "minecraft:white_concrete_powder";
+        public const string WhiteConcreteSlab = "minecraft:white_concrete_slab";
+        public const string WhiteConcreteStairs = "minecraft:white_concrete_stairs";
         public const string WhiteGlazedTerracotta = "minecraft:white_glazed_terracotta";
         public const string WhiteShulkerBox = "minecraft:white_shulker_box";
         public const string WhiteStainedGlass = "minecraft:white_stained_glass";
@@ -1179,6 +1264,8 @@ namespace Substrate
         public const string WhiteTulip = "minecraft:white_tulip";
         public const string WhiteWallBanner = "minecraft:white_wall_banner";
         public const string WhiteWool = "minecraft:white_wool";
+        public const string WhiteWoolSlab = "minecraft:white_wool_slab";
+        public const string WhiteWoolStairs = "minecraft:white_wool_stairs";
         public const string Wildflowers = "minecraft:wildflowers";
         public const string WitherRose = "minecraft:wither_rose";
         public const string WitherSkeletonSkull = "minecraft:wither_skeleton_skull";
@@ -1190,13 +1277,18 @@ namespace Substrate
         public const string YellowCarpet = "minecraft:yellow_carpet";
         public const string YellowConcrete = "minecraft:yellow_concrete";
         public const string YellowConcretePowder = "minecraft:yellow_concrete_powder";
+        public const string YellowConcreteSlab = "minecraft:yellow_concrete_slab";
+        public const string YellowConcreteStairs = "minecraft:yellow_concrete_stairs";
         public const string YellowGlazedTerracotta = "minecraft:yellow_glazed_terracotta";
+        public const string YellowPoplarLeaves = "minecraft:yellow_poplar_leaves";
         public const string YellowShulkerBox = "minecraft:yellow_shulker_box";
         public const string YellowStainedGlass = "minecraft:yellow_stained_glass";
         public const string YellowStainedGlassPane = "minecraft:yellow_stained_glass_pane";
         public const string YellowTerracotta = "minecraft:yellow_terracotta";
         public const string YellowWallBanner = "minecraft:yellow_wall_banner";
         public const string YellowWool = "minecraft:yellow_wool";
+        public const string YellowWoolSlab = "minecraft:yellow_wool_slab";
+        public const string YellowWoolStairs = "minecraft:yellow_wool_stairs";
         public const string ZombieHead = "minecraft:zombie_head";
         public const string ZombieWallHead = "minecraft:zombie_wall_head";
     }
