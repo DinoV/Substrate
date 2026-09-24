@@ -195,7 +195,7 @@ namespace Substrate
             _tree = section;
             _palette = new PaletteBlock[paletteTag.Count];
             for (int i = 0; i < paletteTag.Count; i++)
-                _palette[i] = PaletteBlock.FromTree(paletteTag[i] as TagNodeCompound);
+                _palette[i] = PaletteBlock.FromTree(paletteTag[i]);
 
             short[,,] ids = new short[Size, Size, Size];
             TagNodeByteArray metadataTag = new TagNodeByteArray(new byte[BlockCount / 2]);
@@ -262,8 +262,16 @@ namespace Substrate
 
             TagNodeCompound copy = new TagNodeCompound();
             foreach (KeyValuePair<string, TagNode> node in _tree) copy[node.Key] = node.Value;
-            TagNodeList paletteTag = new TagNodeList(TagType.TAG_COMPOUND);
-            foreach (PaletteBlock block in palette) paletteTag.Add(block.BuildTree());
+            bool stringPalette = UsesCompactPaletteEntries &&
+                palette.TrueForAll(block => block.Properties == null || block.Properties.Count == 0);
+            TagNodeList paletteTag = new TagNodeList(
+                stringPalette ? TagType.TAG_STRING : TagType.TAG_COMPOUND);
+            foreach (PaletteBlock block in palette) {
+                if (stringPalette)
+                    paletteTag.Add(new TagNodeString(block.Name));
+                else
+                    paletteTag.Add(block.BuildTree(UsesCompactPaletteEntries));
+            }
             TagNodeLongArray packed = null;
             if (palette.Count != 1) {
                 int bits = Math.Max(4, BitsFor(palette.Count));
@@ -364,6 +372,11 @@ namespace Substrate
 
         private bool UsesPaddedPacking { get { return _modern || _dataVersion >= 2529; } }
 
+        // Minecraft 26.3's block-state codec writes palette entries using the
+        // new id/properties form.  Property-free entries are represented by a
+        // compound containing an empty-name string value.
+        private bool UsesCompactPaletteEntries { get { return _modern && _dataVersion >= 5023; } }
+
         private static int BitsFor(int count)
         {
             int bits = 0;
@@ -425,7 +438,16 @@ namespace Substrate
             _palette = new[] { new PaletteBlock("minecraft:air", null, 0, 0) };
             _tree = new TagNodeCompound();
             _tree["Y"] = new TagNodeByte(_y);
-            TagNodeList palette = new TagNodeList(TagType.TAG_COMPOUND) { _palette[0].BuildTree() };
+            TagNodeList palette;
+            if (UsesCompactPaletteEntries) {
+                palette = new TagNodeList(TagType.TAG_STRING) {
+                    new TagNodeString(_palette[0].Name)
+                };
+            } else {
+                palette = new TagNodeList(TagType.TAG_COMPOUND) {
+                    _palette[0].BuildTree(false)
+                };
+            }
             if (_modern) {
                 TagNodeCompound container = new TagNodeCompound();
                 container["palette"] = palette;
@@ -457,15 +479,32 @@ namespace Substrate
             Data = data;
         }
 
-        internal static PaletteBlock FromTree(TagNodeCompound tree)
+        internal static PaletteBlock FromTree(TagNode treeNode)
         {
+            TagNodeString directName = treeNode as TagNodeString;
+            if (directName != null)
+                return FromNameAndProperties(directName.Data, null);
+
+            TagNodeCompound tree = treeNode as TagNodeCompound;
             TagNode nameNode;
-            if (tree == null || !tree.TryGetValue("Name", out nameNode)) nameNode = null;
+            if (tree == null ||
+                (!tree.TryGetValue("Name", out nameNode) &&
+                 !tree.TryGetValue("id", out nameNode) &&
+                 !tree.TryGetValue(String.Empty, out nameNode))) nameNode = null;
             TagNodeString nameTag = nameNode as TagNodeString;
             string name = nameTag == null ? "minecraft:air" : nameTag.Data;
             TagNode propertiesNode;
-            if (tree == null || !tree.TryGetValue("Properties", out propertiesNode)) propertiesNode = null;
+            if (tree == null ||
+                (!tree.TryGetValue("Properties", out propertiesNode) &&
+                 !tree.TryGetValue("properties", out propertiesNode))) propertiesNode = null;
             TagNodeCompound properties = propertiesNode as TagNodeCompound;
+            return FromNameAndProperties(name, properties);
+        }
+
+        private static PaletteBlock FromNameAndProperties(
+                string name,
+                TagNodeCompound properties)
+        {
             int legacyId;
             int legacyData;
             if (BlockInfo.TryGetLegacyBlockState(name, properties, out legacyId, out legacyData))
@@ -481,9 +520,23 @@ namespace Substrate
 
         internal TagNodeCompound BuildTree()
         {
+            return BuildTree(false);
+        }
+
+        internal TagNodeCompound BuildTree(bool compact)
+        {
             TagNodeCompound result = new TagNodeCompound();
-            result["Name"] = new TagNodeString(Name);
-            if (Properties != null && Properties.Count > 0) result["Properties"] = Properties;
+            if (compact) {
+                if (Properties == null || Properties.Count == 0) {
+                    result[String.Empty] = new TagNodeString(Name);
+                } else {
+                    result["id"] = new TagNodeString(Name);
+                    result["properties"] = Properties;
+                }
+            } else {
+                result["Name"] = new TagNodeString(Name);
+                if (Properties != null && Properties.Count > 0) result["Properties"] = Properties;
+            }
             return result;
         }
 

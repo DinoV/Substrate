@@ -322,10 +322,24 @@ namespace Substrate
             int maximumSectionY = _modern ? 19 : 15;
             _sections = new AquaticSection[maximumSectionY - _minimumSectionY + 1];
             foreach (TagNodeCompound section in sections) {
-                AquaticSection aquaticSection = new AquaticSection(section, _dataVersion);
-                int sectionIndex = aquaticSection.Y - _minimumSectionY;
+                TagNodeByte yTag = section["Y"] as TagNodeByte;
+                if (yTag == null)
+                    continue;
+
+                int sectionY = (sbyte)yTag.Data;
+                int sectionIndex = sectionY - _minimumSectionY;
                 if (sectionIndex < 0 || sectionIndex >= _sections.Length)
                     continue;
+
+                // Recent versions may write light-only sections immediately
+                // outside (and occasionally at the edge of) the build range.
+                // They have Y/SkyLight data but no block-state container and
+                // therefore are not palette sections.
+                string blockStatesKey = _modern ? "block_states" : "Palette";
+                if (!section.ContainsKey(blockStatesKey))
+                    continue;
+
+                AquaticSection aquaticSection = new AquaticSection(section, _dataVersion);
                 _sections[sectionIndex] = aquaticSection;
             }
 

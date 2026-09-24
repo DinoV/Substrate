@@ -116,6 +116,111 @@ namespace Substrate.Tests
         }
 
         [TestMethod]
+        public void ModernChunkIgnoresLightOnlySections()
+        {
+            TagNodeCompound lightOnlySection = new TagNodeCompound();
+            lightOnlySection["Y"] = new TagNodeByte(unchecked((byte)(sbyte)-5));
+            lightOnlySection["SkyLight"] = new TagNodeByteArray(new byte[2048]);
+
+            int[] states = new int[4096];
+            states[0] = 1;
+            TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND);
+            sections.Add(lightOnlySection);
+            sections.Add(BuildModernSection(-4, states));
+
+            TagNodeCompound root = new TagNodeCompound();
+            root["DataVersion"] = new TagNodeInt(5023);
+            root["xPos"] = new TagNodeInt(0);
+            root["zPos"] = new TagNodeInt(0);
+            root["Status"] = new TagNodeString("full");
+            root["sections"] = sections;
+            root["block_entities"] = new TagNodeList(TagType.TAG_COMPOUND);
+
+            AquaticChunk chunk = AquaticChunk.CreateVerified(new NbtTree(root));
+            Assert.IsNotNull(chunk);
+            Assert.AreEqual(BlockType.STONE, chunk.GetBlockID(0, -64, 0));
+        }
+
+        [TestMethod]
+        public void ModernChunkReadsAndWritesCompact263PaletteEntries()
+        {
+            int[] states = new int[4096];
+            states[0] = 1;
+            TagNodeCompound section = BuildModernSection(-4, states);
+            TagNodeList palette = section["block_states"].ToTagCompound()["palette"].ToTagList();
+            palette.Clear();
+            TagNodeCompound air = new TagNodeCompound();
+            air[String.Empty] = new TagNodeString("minecraft:air");
+            TagNodeCompound grass = new TagNodeCompound();
+            grass["id"] = new TagNodeString("minecraft:grass_block");
+            grass["properties"] = Properties("snowy", "false");
+            palette.Add(air);
+            palette.Add(grass);
+
+            TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND) { section };
+            TagNodeCompound root = new TagNodeCompound();
+            root["DataVersion"] = new TagNodeInt(5023);
+            root["xPos"] = new TagNodeInt(0);
+            root["zPos"] = new TagNodeInt(0);
+            root["Status"] = new TagNodeString("full");
+            root["sections"] = sections;
+            root["block_entities"] = new TagNodeList(TagType.TAG_COMPOUND);
+
+            AquaticChunk chunk = AquaticChunk.CreateVerified(new NbtTree(root));
+            Assert.AreEqual("minecraft:grass_block", chunk.GetBlockName(0, -64, 0));
+
+            TagNodeCompound saved = chunk.BuildTree().ToTagCompound();
+            TagNodeList savedPalette = saved["sections"].ToTagList()[0].ToTagCompound()
+                ["block_states"].ToTagCompound()["palette"].ToTagList();
+            Assert.AreEqual("minecraft:grass_block",
+                savedPalette[0].ToTagCompound()["id"].ToTagString().Data);
+            Assert.AreEqual("false", savedPalette[0].ToTagCompound()["properties"]
+                .ToTagCompound()["snowy"].ToTagString().Data);
+        }
+
+        [TestMethod]
+        public void ModernChunkReadsAndWritesStringOnly263Palette()
+        {
+            int[] states = new int[4096];
+            states[0] = 1;
+            TagNodeCompound section = BuildModernSection(4, states);
+            TagNodeList palette = new TagNodeList(TagType.TAG_STRING) {
+                new TagNodeString("minecraft:air"),
+                new TagNodeString("minecraft:grass_block")
+            };
+            section["block_states"].ToTagCompound()["palette"] = palette;
+
+            TagNodeList sections = new TagNodeList(TagType.TAG_COMPOUND) { section };
+            TagNodeCompound root = new TagNodeCompound();
+            root["DataVersion"] = new TagNodeInt(5023);
+            root["xPos"] = new TagNodeInt(0);
+            root["zPos"] = new TagNodeInt(0);
+            root["Status"] = new TagNodeString("full");
+            root["sections"] = sections;
+            root["block_entities"] = new TagNodeList(TagType.TAG_COMPOUND);
+
+            AquaticChunk chunk = AquaticChunk.CreateVerified(new NbtTree(root));
+            Assert.AreEqual("minecraft:grass_block", chunk.GetBlockName(0, 64, 0));
+
+            TagNodeCompound saved = chunk.BuildTree().ToTagCompound();
+            TagNodeCompound savedSection = null;
+            foreach (TagNodeCompound candidate in saved["sections"].ToTagList()) {
+                if ((sbyte)candidate["Y"].ToTagByte().Data == 4) {
+                    savedSection = candidate;
+                    break;
+                }
+            }
+            Assert.IsNotNull(savedSection);
+            TagNodeList savedPalette = savedSection["block_states"].ToTagCompound()
+                ["palette"].ToTagList();
+            Assert.AreEqual(TagType.TAG_STRING, savedPalette.ValueType);
+            Assert.AreEqual("minecraft:grass_block", savedPalette[0].ToTagString().Data);
+
+            AquaticChunk roundTrip = AquaticChunk.CreateVerified(new NbtTree(saved));
+            Assert.AreEqual("minecraft:grass_block", roundTrip.GetBlockName(0, 64, 0));
+        }
+
+        [TestMethod]
         public void MissingHeightMapUsesMotionBlockingBlocksAndFluids()
         {
             int[] states = new int[4096];
